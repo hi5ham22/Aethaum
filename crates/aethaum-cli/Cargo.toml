@@ -1,0 +1,9 @@
+[package]
+name = "aethaum-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aethaum-core = { path = "../aethaum-core" }
+clap.workspace = true
+anyhow.workspace = true

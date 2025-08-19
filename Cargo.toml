@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "crates/aethaum-core",
+    "crates/aethaum-cli",
+    "crates/aethaum-runtime",
+    "crates/aethaum-macros",
+]
+[workspace.dependencies]
+# 共享依赖版本
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+mlua = { version = "0.9", features = ["lua54", "vendored"] }
+bevy_ecs = "0.13"
+bevy_app = "0.13"
+anyhow = "1.0"
+clap = { version = "4.0", features = ["derive"] }

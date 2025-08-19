@@ -1,0 +1,11 @@
+[package]
+name = "aethaum-runtime"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aethaum-core = { path = "../aethaum-core" }
+bevy_ecs.workspace = true
+bevy_app.workspace = true
+mlua.workspace = true
+anyhow.workspace = true

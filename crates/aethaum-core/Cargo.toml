@@ -1,0 +1,11 @@
+[package]
+name = "aethaum-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
+anyhow.workspace = true
+bevy_ecs.workspace = true
+mlua.workspace = true
