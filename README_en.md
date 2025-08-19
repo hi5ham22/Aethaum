@@ -27,12 +27,16 @@ Aethaum enables you to define complex game worlds and AI interaction environment
 
 ## 🏗️ Project Architecture
 
+```text
 world/
 ├── world.toml                 # World configuration file
 ├── systems/                   # System definitions directory
 ├── components/                # Component definitions directory
 ├── events/                    # Event definitions directory
 └── entity_protos/             # Entity prototype directory
+```
+
+
 
 ## 📋 Configuration Details
 

@@ -27,12 +27,16 @@ Aethaum 让你能够通过简单的 TOML 配置来定义复杂的游戏世界和
 
 ## 🏗️ 项目架构
 
+```text
 world/
 ├── world.toml                 # 世界配置文件
 ├── systems/                   # 系统定义目录
 ├── components/                # 组件定义目录
 ├── events/                    # 事件定义目录
 └── entity_protos/             # 实体原型目录
+```
+
+
 ## 📋 配置详解
 
 ### 🌍 world.toml - 世界配置
