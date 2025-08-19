@@ -2,41 +2,84 @@
 
 [简体中文](README.md) | [English](README_en.md)
 
-**Important**: This project is still in early development stage and currently has no available release.
+**Important**: This project is still in early development and currently has no available version.
 
+A declarative framework for writing interactive worlds for AI agents.
 
+Aethaum allows you to define complex game worlds and AI interaction environments through simple TOML configuration, without writing complex Rust code.
 
-A declarative framework for building interactive worlds for AI agents.
-
-Aethaum enables you to define complex game worlds and AI interaction environments through simple TOML configurations, without writing intricate Rust code.
-
-## 🎯 Core Principles
+## 🎯 Core Concepts
 
 - **Declarative Configuration**: Define ECS structures using TOML
-- **Logic Separation**: Separate configuration from logic with Lua handling runtime behavior
-- **Automatic Translation**: TOML configurations automatically convert to high-performance Rust code
+- **Logic Separation**: Separate configuration from logic, with Lua handling runtime logic
+- **Automatic Translation**: TOML configurations are automatically translated into high-performance Rust code
 - **Flexible Extension**: Generated Rust projects can be directly extended and customized
 
 ## 🚀 Features
 
-- 📝 **TOML-Based ECS Configuration** - Clean and readable configuration syntax
-- 🐍 **Lua Scripting Logic** - Flexible runtime logic implementation
+- 📝 **TOML-based ECS Configuration** - Clean and readable configuration syntax
+- 🐍 **Lua Script Logic** - Flexible runtime logic writing
 - 🦀 **Bevy ECS Integration** - Powerful ECS engine support
 - 🔥 **Hot Reload Support** - Real-time updates during development
-- 🎮 **AI-Friendly Design** - Built specifically for AI agent interactions
+- 🎮 **AI-Friendly** - Designed specifically for AI agent interaction
 
-## 🏗️ Project Architecture
+## 🏗️ Project Structure
 
 ```text
 world/
 ├── world.toml                 # World configuration file
-├── systems/                   # System definitions directory
-├── components/                # Component definitions directory
-├── events/                    # Event definitions directory
-└── entity_protos/             # Entity prototype directory
+├── modules/                   # Module directory
+│   ├── combat/                # Combat module
+│   │   ├── components/        # Component definitions
+│   │   ├── systems/           # System definitions
+│   │   ├── events/            # Event definitions
+│   │   └── entity_protos/     # Entity prototypes
+│   ├── explore/               # Exploration module
+│       ├── components/
+│       ├── systems/
+│       ├── events/
+│       └── entity_protos/
+└── generated/                 # Generated Rust code directory
 ```
 
+## 🧩 Modular Architecture Explanation
 
+Aethaum uses a modular architecture that allows dividing the world into multiple functional modules. Each module contains its own components, systems, events, and entity prototypes. Modules are isolated via namespaces to avoid naming conflicts and support cross-module references.
+
+### 📦 Module Definition
+
+Each module is an independent directory located under `modules/`. The internal structure of a module mirrors the top-level structure, containing:
+
+- `components/`: Components defined within the module
+- `systems/`: Systems defined within the module
+- `events/`: Events defined within the module
+- `entity_protos/`: Entity prototypes defined within the module
+
+### 🌐 Namespaces and References
+
+All definitions default to belonging to the namespace of their respective module. To reference definitions from other modules, use the format `module_name::definition_name`.
+
+```toml
+# Example: Referencing the Health component from the combat module
+components = ["combat::Health", "Position"]
+```
+
+References within the same module can omit the module prefix:
+
+```toml
+# Example: Referencing components within the same module
+components = ["Health", "Position"]
+```
+
+### 🧾 Module Declaration
+
+Modules used in the project and their paths are declared in `world.toml` using the `[modules]` field:
+
+```toml
+[modules]
+combat = "modules/combat"
+explore = "modules/explore"
+```
 
 ## 📋 Configuration Details
 
@@ -48,23 +91,9 @@ name = "MyAIWorld"
 version = "0.1.0"
 author = "Your Name"
 
-[includes]
-systems = [
-    "movement.toml",
-    "combat.toml"
-]
-components = [
-    "health.toml",
-    "position.toml"
-]
-events = [
-    "damage.toml",
-    "death.toml"
-]
-entity_protos = [
-    "player.toml",
-    "enemy.toml"
-]
+[modules]
+combat = "modules/combat"
+explore = "modules/explore"
 
 [build]
 output_dir = "generated"
@@ -79,23 +108,23 @@ output_dir = "generated"
 # Only one system can be defined per TOML file
 [normal]
 name = "HealthSystem"
-description = "Handles health value updates for entities"
+description = "Handles entity health updates"
 category = "combat"
 priority = 100
 
 # Component query definitions
 [[queries]]
 name = "living_entities"
-components = ["Health", "Position"]
+components = ["combat::Health", "Position"]
 description = "Query all living entities"
 
 [[queries]]
 name = "damaged_entities"
-components = ["Health", "Damage"]
+components = ["combat::Health", "Damage"]
 description = "Query damaged entities"
 
 [update]
-interval = 0.1  # Update interval in seconds
+interval = 0.1  # Update interval (seconds)
 
 # Update condition (Lua)
 condition = '''
@@ -124,12 +153,13 @@ entity.health.value = math.min(
     entity.health.value + event.amount,
     entity.health.max_value
 )
+'''
 ```
 
 ### 🧩 components/*.toml - Component Definitions
 
 ```toml
-# Multiple components can be defined in one TOML file. The 'normal' field is metadata and doesn't participate in translation
+# Multiple components can be defined in one TOML file; the normal field does not participate in translation and serves as comments or metadata
 [normal]
 tags = ["combat", "stats"]
 description = "Combat-related components"
@@ -137,7 +167,7 @@ description = "Combat-related components"
 # Health component
 [[components]]
 name = "Health"
-description = "Entity health properties"
+description = "Entity health value"
 
 [[components.fields]]
 name = "value"
@@ -154,7 +184,7 @@ description = "Maximum health value"
 # Position component
 [[components]]
 name = "Position"
-description = "Entity position coordinates"
+description = "Entity position"
 
 [[components.fields]]
 name = "x"
@@ -172,7 +202,7 @@ description = "Y coordinate"
 ### ⚡ events/*.toml - Event Definitions
 
 ```toml
-# Multiple events can be defined in one TOML file. The 'normal' field is metadata and doesn't participate in translation
+# Multiple events can be defined in one TOML file; the normal field does not participate in translation and serves as comments or metadata
 [normal]
 tags = ["combat", "interaction"]
 description = "Combat and interaction events"
@@ -180,38 +210,38 @@ description = "Combat and interaction events"
 # Damage event
 [[events]]
 name = "EntityDamaged"
-description = "Entity receives damage"
+description = "Entity takes damage"
 
 [[events.fields]]
 name = "damage"
 type = "f32"
-description = "Amount of damage"
+description = "Damage value"
 
 [[events.fields]]
 name = "attacker"
 type = "EntityId"
-description = "Attacker entity ID"
+description = "Attacker ID"
 
-# Healing event
+# Heal event
 [[events]]
 name = "EntityHealed"
-description = "Entity receives healing"
+description = "Entity is healed"
 
 [[events.fields]]
 name = "amount"
 type = "f32"
-description = "Amount of healing"
+description = "Heal amount"
 
 [[events.fields]]
 name = "healer"
 type = "EntityId"
-description = "Healer entity ID"
+description = "Healer ID"
 ```
 
 ### 🏗️ entity_protos/*.toml - Entity Prototypes
 
 ```toml
-# Multiple entity prototypes can be defined in one TOML file. The 'normal' field is metadata and doesn't participate in translation
+# Multiple entity prototypes can be defined in one TOML file; the normal field does not participate in translation and serves as comments or metadata
 [normal]
 tags = ["characters", "npcs"]
 description = "Character entity prototypes"
@@ -219,46 +249,47 @@ description = "Character entity prototypes"
 # Player prototype
 [[entity_protos]]
 name = "Player"
-components = ["Health", "Position", "PlayerControlled"]
-description = "Player character prototype"
+components = ["combat::Health", "Position", "PlayerControlled"]
+description = "Player character"
 
 # Enemy prototype
 [[entity_protos]]
 name = "Enemy"
-components = ["Health", "Position", "AIControlled"]
-description = "Enemy character prototype"
+components = ["combat::Health", "Position", "AIControlled"]
+description = "Enemy character"
 
 # Item prototype
 [[entity_protos]]
 name = "HealthPotion"
 components = ["Item", "Consumable"]
-description = "Health restoration potion"
+description = "Health potion"
 ```
 
 ## 🚀 Quick Start
 
-- Currently under development and not yet available
+- Under development, not yet available for use
 
 ## 🛠️ Development Workflow
 
-1. **Define Components** - Create TOML files in `components/` directory
-2. **Create Systems** - Define system logic in `systems/` directory
-3. **Design Events** - Create event structures in `events/` directory
-4. **Build Prototypes** - Create entity templates in `entity_protos/` directory
-5. **Configure World** - Edit `world.toml` to include all definitions
-6. **Build and Run** - Use CLI tools for building and execution
+1. **Create Module** - Create a module directory under `modules/`
+2. **Define Components** - Create TOML files under `modules/{module_name}/components/`
+3. **Create Systems** - Define system logic under `modules/{module_name}/systems/`
+4. **Design Events** - Define event structures under `modules/{module_name}/events/`
+5. **Build Prototypes** - Create entity templates under `modules/{module_name}/entity_protos/`
+6. **Configure World** - Edit `world.toml` to declare modules and include all definitions
+7. **Build and Run** - Use CLI tools to build and run
 
 ## 🎯 Use Cases
 
-- 🤖 **AI Training Environments** - Provides simple interactive worlds for AI agents
-- 🤖 **AI Role-Playing** - Enables AI characters to accumulate experiences that can be transformed into memories
+- 🤖 **AI Training Environments** - Provide simple interactive worlds for AI agents
+- 🤖 **AI Role Playing** - Enable AI characters to gain experiences through world interactions that can be converted into memories
 - 🎮 **Prototype Development** - Rapidly build small game prototypes
 - 🔬 **Simulation Experiments** - Simulate complex system behaviors
 
-## 🤝 Contribution
+## 🤝 Contributing
 
-Feel free to submit Issues and Pull Requests!
+Issues and Pull Requests are welcome!
 
 ## 📄 License
 
-MIT License
+This project is licensed under the MIT License.

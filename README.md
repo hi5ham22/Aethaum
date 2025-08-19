@@ -30,12 +30,58 @@ Aethaum 让你能够通过简单的 TOML 配置来定义复杂的游戏世界和
 ```text
 world/
 ├── world.toml                 # 世界配置文件
-├── systems/                   # 系统定义目录
-├── components/                # 组件定义目录
-├── events/                    # 事件定义目录
-└── entity_protos/             # 实体原型目录
+├── modules/                   # 模块目录
+│   ├── combat/                # 战斗模块
+│   │   ├── components/        # 组件定义
+│   │   ├── systems/           # 系统定义
+│   │   ├── events/            # 事件定义
+│   │   └── entity_protos/     # 实体原型
+│   ├── explore/               # 探索模块
+│       ├── components/
+│       ├── systems/
+│       ├── events/
+│       └── entity_protos/
+└── generated/                 # 生成的Rust代码目录
 ```
 
+## 🧩 模块化架构说明
+
+Aethaum 使用模块化架构，允许将世界划分为多个功能模块，每个模块包含自己的组件、系统、事件和实体原型。模块通过命名空间进行隔离，避免命名冲突，并支持跨模块引用。
+
+### 📦 模块定义
+
+每个模块是一个独立的目录，位于 `modules/` 下。模块内部结构与顶层结构一致，包含：
+
+- `components/`：模块内定义的组件
+- `systems/`：模块内定义的系统
+- `events/`：模块内定义的事件
+- `entity_protos/`：模块内定义的实体原型
+
+### 🌐 命名空间与引用
+
+所有定义默认属于其所在模块的命名空间。引用其他模块的定义时，需使用 `模块名::定义名` 的格式。
+
+```toml
+# 示例：引用 combat 模块的 Health 组件
+components = ["combat::Health", "Position"]
+```
+
+同一模块内的引用可省略模块前缀：
+
+```toml
+# 示例：引用本模块的组件
+components = ["Health", "Position"]
+```
+
+### 🧾 模块声明
+
+在 `world.toml` 中通过 `[modules]` 字段声明项目使用的模块及其路径：
+
+```toml
+[modules]
+combat = "modules/combat"
+explore = "modules/explore"
+```
 
 ## 📋 配置详解
 
@@ -47,23 +93,9 @@ name = "MyAIWorld"
 version = "0.1.0"
 author = "Your Name"
 
-[includes]
-systems = [
-    "movement.toml",
-    "combat.toml"
-]
-components = [
-    "health.toml",
-    "position.toml"
-]
-events = [
-    "damage.toml",
-    "death.toml"
-]
-entity_protos = [
-    "player.toml",
-    "enemy.toml"
-]
+[modules]
+combat = "modules/combat"
+explore = "modules/explore"
 
 [build]
 output_dir = "generated"
@@ -85,12 +117,12 @@ priority = 100
 # 组件查询定义
 [[queries]]
 name = "living_entities"
-components = ["Health", "Position"]
+components = ["combat::Health", "Position"]
 description = "查询所有存活实体"
 
 [[queries]]
 name = "damaged_entities"
-components = ["Health", "Damage"]
+components = ["combat::Health", "Damage"]
 description = "查询受伤实体"
 
 [update]
@@ -219,13 +251,13 @@ description = "角色实体原型"
 # 玩家原型
 [[entity_protos]]
 name = "Player"
-components = ["Health", "Position", "PlayerControlled"]
+components = ["combat::Health", "Position", "PlayerControlled"]
 description = "玩家角色"
 
 # 敌人原型
 [[entity_protos]]
 name = "Enemy"
-components = ["Health", "Position", "AIControlled"]
+components = ["combat::Health", "Position", "AIControlled"]
 description = "敌人角色"
 
 # 物品原型
@@ -241,12 +273,13 @@ description = "治疗药水"
 
 ## 🛠️ 开发流程
 
-1. **定义组件** - 在 `components/` 目录下创建 TOML 文件
-2. **创建系统** - 在 `systems/` 目录下定义系统逻辑
-3. **设计事件** - 在 `events/` 目录下定义事件结构
-4. **构建原型** - 在 `entity_protos/` 目录下创建实体模板
-5. **配置世界** - 编辑 `world.toml` 包含所有定义
-6. **构建运行** - 使用 CLI 工具构建和运行
+1. **创建模块** - 在 `modules/` 下创建模块目录
+2. **定义组件** - 在 `modules/{module_name}/components/` 下创建 TOML 文件
+3. **创建系统** - 在 `modules/{module_name}/systems/` 下定义系统逻辑
+4. **设计事件** - 在 `modules/{module_name}/events/` 下定义事件结构
+5. **构建原型** - 在 `modules/{module_name}/entity_protos/` 下创建实体模板
+6. **配置世界** - 编辑 `world.toml` 声明模块并包含所有定义
+7. **构建运行** - 使用 CLI 工具构建和运行
 
 ## 🎯 适用场景
 
