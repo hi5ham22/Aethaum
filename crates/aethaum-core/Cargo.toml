@@ -9,3 +9,4 @@ toml.workspace = true
 anyhow.workspace = true
 bevy_ecs.workspace = true
 mlua.workspace = true
+smart-string.workspace = true
