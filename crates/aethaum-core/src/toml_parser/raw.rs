@@ -73,7 +73,8 @@ pub struct RawEntityProtoFile {
 pub struct RawSystemQuery {
     pub name: SmartString,
     pub description: Option<SmartString>,
-    pub components: Vec<SmartString>,
+    pub components_include: Option<Vec<SmartString>>,
+    pub components_exclude: Option<Vec<SmartString>>,
 }
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RawSystemEventHandler {
@@ -87,7 +88,7 @@ pub struct RawSystemUpdate {
     pub condition: Option<SmartString>,
     pub logic: Option<SmartString>
 }
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RawSystemNormal {
     pub name: SmartString,
     pub description: Option<SmartString>,
@@ -234,12 +235,13 @@ mod test {
         # 组件查询定义
         [[queries]]
         name = "living_entities"
-        components = ["combat::Health", "Position"]
+        components_include = ["combat::Health", "Position"]
+        components_exclude = ["Test"]
         description = "查询所有存活实体"
 
         [[queries]]
         name = "damaged_entities"
-        components = ["combat::Health", "Damage"]
+        components_include = ["combat::Health", "Damage"]
         description = "查询受伤实体"
 
         [update]
