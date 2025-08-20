@@ -117,12 +117,13 @@ priority = 100
 # 组件查询定义
 [[queries]]
 name = "living_entities"
-components = ["combat::Health", "Position"]
+components_include = ["combat::Health", "Position"]
+components_exclude = ["Test"]
 description = "查询所有存活实体"
 
 [[queries]]
 name = "damaged_entities"
-components = ["combat::Health", "Damage"]
+components_include = ["combat::Health", "Damage"]
 description = "查询受伤实体"
 
 [update]
@@ -173,13 +174,13 @@ description = "实体健康值"
 
 [[components.fields]]
 name = "value"
-type = "f32"
+type = "float"
 default = 100.0
 description = "当前健康值"
 
 [[components.fields]]
 name = "max_value"
-type = "f32"
+type = "float"
 default = 100.0
 description = "最大健康值"
 
@@ -190,13 +191,13 @@ description = "实体位置"
 
 [[components.fields]]
 name = "x"
-type = "f32"
+type = "float"
 default = 0.0
 description = "X坐标"
 
 [[components.fields]]
 name = "y"
-type = "f32"
+type = "float"
 default = 0.0
 description = "Y坐标"
 ```
@@ -216,12 +217,12 @@ description = "实体受到伤害"
 
 [[events.fields]]
 name = "damage"
-type = "f32"
+type = "float"
 description = "伤害值"
 
 [[events.fields]]
 name = "attacker"
-type = "EntityId"
+type = "EntityId" #Primitive Type
 description = "攻击者ID"
 
 # 治疗事件
@@ -231,7 +232,7 @@ description = "实体被治疗"
 
 [[events.fields]]
 name = "amount"
-type = "f32"
+type = "float"
 description = "治疗量"
 
 [[events.fields]]
