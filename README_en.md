@@ -115,12 +115,13 @@ priority = 100
 # Component query definitions
 [[queries]]
 name = "living_entities"
-components = ["combat::Health", "Position"]
+components_include = ["combat::Health", "Position"]
+components_exclude = ["Test"]
 description = "Query all living entities"
 
 [[queries]]
 name = "damaged_entities"
-components = ["combat::Health", "Damage"]
+components_include = ["combat::Health", "Damage"]
 description = "Query damaged entities"
 
 [update]
@@ -171,13 +172,13 @@ description = "Entity health value"
 
 [[components.fields]]
 name = "value"
-type = "f32"
+type = "float"
 default = 100.0
 description = "Current health value"
 
 [[components.fields]]
 name = "max_value"
-type = "f32"
+type = "float"
 default = 100.0
 description = "Maximum health value"
 
@@ -188,13 +189,13 @@ description = "Entity position"
 
 [[components.fields]]
 name = "x"
-type = "f32"
+type = "float"
 default = 0.0
 description = "X coordinate"
 
 [[components.fields]]
 name = "y"
-type = "f32"
+type = "float"
 default = 0.0
 description = "Y coordinate"
 ```
@@ -214,12 +215,12 @@ description = "Entity takes damage"
 
 [[events.fields]]
 name = "damage"
-type = "f32"
+type = "float"
 description = "Damage value"
 
 [[events.fields]]
 name = "attacker"
-type = "EntityId"
+type = "EntityId" #Primitive Type
 description = "Attacker ID"
 
 # Heal event
@@ -229,7 +230,7 @@ description = "Entity is healed"
 
 [[events.fields]]
 name = "amount"
-type = "f32"
+type = "float"
 description = "Heal amount"
 
 [[events.fields]]

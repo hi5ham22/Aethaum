@@ -222,7 +222,7 @@ description = "伤害值"
 
 [[events.fields]]
 name = "attacker"
-type = "EntityId" #Primitive Type
+type = "EntityId" #原生类型
 description = "攻击者ID"
 
 # 治疗事件
