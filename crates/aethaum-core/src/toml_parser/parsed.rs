@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::toml_parser::raw::{RawComponent, RawComponentField, RawComponentFile, RawEntityProto, RawEntityProtoFile, RawEvent, RawEventField, RawEventFile, RawSystem, RawSystemEventHandler, RawSystemFile, RawSystemNormal, RawSystemQuery, RawSystemUpdate, RawTomlCodeFile};
 use smart_string::SmartString;
 use std::time::Duration;
@@ -13,6 +14,8 @@ pub trait TomlCode: Sized { //标记Trait, 用于约束Parser泛型
 
 }
 
+pub trait AethaumRef {}
+
 //Type Definition
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum PrimitiveType {
@@ -22,11 +25,31 @@ pub enum PrimitiveType {
     Str,
     //TODO: 添加更多类型
 }
+impl std::fmt::Display for PrimitiveType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrimitiveType::Float => write!(f, "float"),
+            PrimitiveType::Int => write!(f, "int"),
+            PrimitiveType::Bool => write!(f, "bool"),
+            PrimitiveType::Str => write!(f, "str"),
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum AethaumType {
     Primitive(PrimitiveType),
     Custom(SmartString)
 }
+impl std::fmt::Display for AethaumType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AethaumType::Primitive(primitive) => write!(f, "{}", primitive),
+            AethaumType::Custom(custom) => write!(f, "{}", custom),
+        }
+    }
+}
+
 impl AethaumType {
     pub fn is_primitive(&self) -> bool {
         matches!(self, AethaumType::Primitive(_))
@@ -85,6 +108,11 @@ impl From<SmartString> for ComponentRef {
         Self::new(s)
     }
 }
+impl std::fmt::Display for ComponentRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct ComponentConstraint {
     include: Option<Vec<ComponentRef>>, //必须包含的组件
@@ -113,6 +141,28 @@ pub struct Event {
     pub description: Option<SmartString>,
     pub fields: Option<Vec<EventField>>
 }
+#[derive(Debug,PartialEq,Clone, Eq, Hash)]
+pub struct EventRef {
+    pub name: SmartString,
+}
+impl EventRef {
+    pub fn new(name: impl Into<SmartString>) -> Self {
+        Self { name: name.into() }
+    }
+    pub fn as_str(&self) -> &str {
+        &self.name
+    }
+}
+impl From<&str> for EventRef {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+impl std::fmt::Display for EventRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
 //Entity Protos
 #[derive(Debug,PartialEq,Clone)]
 pub struct EntityProto {
@@ -120,6 +170,29 @@ pub struct EntityProto {
     pub description: Option<SmartString>,
     pub components: Vec<ComponentRef>
 }
+#[derive(Debug,PartialEq,Clone, Eq, Hash)]
+pub struct EntityProtoRef {
+    pub name: SmartString,
+}
+impl EntityProtoRef {
+    pub fn new(name: impl Into<SmartString>) -> Self {
+        Self { name: name.into() }
+    }
+    pub fn as_str(&self) -> &str {
+        &self.name
+    }
+}
+impl From<&str> for EntityProtoRef {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+impl std::fmt::Display for EntityProtoRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+//System
 pub type SystemNormal = RawSystemNormal;
 #[derive(Debug,PartialEq,Clone)]
 pub struct SystemQuery {
@@ -145,6 +218,28 @@ pub struct System {
     pub queries: Vec<SystemQuery>,
     pub update: Option<SystemUpdate>,
     pub event_handlers: Vec<SystemEventHandler>
+}
+#[derive(Debug,PartialEq,Clone, Eq, Hash)]
+pub struct SystemRef {
+    pub name: SmartString,
+}
+impl SystemRef {
+    pub fn new(name: impl Into<SmartString>) -> Self {
+        Self { name: name.into() }
+    }
+    pub fn as_str(&self) -> &str {
+        &self.name
+    }
+}
+impl From<&str> for SystemRef {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+impl std::fmt::Display for SystemRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 //TomlCode Mark
 impl TomlCode for Component {
@@ -304,4 +399,8 @@ impl TryFrom<RawSystem> for System {
         })
     }
 }
-
+//Ref Trait Register
+impl AethaumRef for ComponentRef {}
+impl AethaumRef for EventRef {}
+impl AethaumRef for EntityProtoRef {}
+impl AethaumRef for SystemRef {}
