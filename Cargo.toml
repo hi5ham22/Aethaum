@@ -17,3 +17,4 @@ anyhow = "1.0"
 clap = { version = "4.0", features = ["derive"] }
 smart-string = { version = "0.1.3", features = ["serde"]}
 itertools = "0.14.0"
+one-or-many = "0.4.0"

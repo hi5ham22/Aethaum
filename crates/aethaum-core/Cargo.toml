@@ -11,3 +11,4 @@ bevy_ecs.workspace = true
 mlua.workspace = true
 smart-string.workspace = true
 itertools.workspace = true
+one-or-many.workspace = true

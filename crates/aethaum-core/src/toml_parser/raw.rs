@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use smart_string::SmartString;
 
+pub trait RawTomlCodeFile: Sized {
+    type RawPieces: for<'de> Deserialize<'de>;
+    fn into_pieces(self) -> Self::RawPieces;
+}
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RawNormal {
@@ -23,7 +27,7 @@ pub struct RawComponentField {
 pub struct RawComponent {
     pub name: SmartString,
     pub description: Option<SmartString>,
-    pub fields: Vec<RawComponentField>,
+    pub fields: Option<Vec<RawComponentField>>,
 }
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -33,7 +37,12 @@ pub struct RawComponentFile {
     #[serde(rename = "components")]
     pub component_list: Vec<RawComponent>,
 }
-
+impl RawTomlCodeFile for RawComponentFile {
+    type RawPieces = Vec<RawComponent>;
+    fn into_pieces(self) -> Self::RawPieces {
+        self.component_list
+    }
+}
 //Event
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RawEventField {
@@ -46,13 +55,19 @@ pub struct RawEventField {
 pub struct RawEvent {
     pub name: SmartString,
     pub description: Option<SmartString>,
-    pub fields: Vec<RawEventField>,
+    pub fields: Option<Vec<RawEventField>>,
 }
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RawEventFile {
     pub normal: Option<RawNormal>,
     #[serde(rename = "events")]
     pub event_list: Vec<RawEvent>
+}
+impl RawTomlCodeFile for RawEventFile {
+    type RawPieces = Vec<RawEvent>;
+    fn into_pieces(self) -> Self::RawPieces {
+        self.event_list
+    }
 }
 //EntityProto
 #[derive(Debug,Serialize,Deserialize)]
@@ -66,6 +81,12 @@ pub struct RawEntityProtoFile {
     pub normal: Option<RawNormal>,
     #[serde(rename = "entity_protos")]
     pub entity_proto_list: Vec<RawEntityProto>
+}
+impl RawTomlCodeFile for RawEntityProtoFile {
+    type RawPieces = Vec<RawEntityProto>;
+    fn into_pieces(self) -> Self::RawPieces {
+        self.entity_proto_list
+    }
 }
 
 //System
@@ -88,7 +109,7 @@ pub struct RawSystemUpdate {
     pub condition: Option<SmartString>,
     pub logic: Option<SmartString>
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct RawSystemNormal {
     pub name: SmartString,
     pub description: Option<SmartString>,
@@ -102,7 +123,13 @@ pub struct RawSystem {
     pub update: Option<RawSystemUpdate>,
     pub event_handlers: Vec<RawSystemEventHandler>,
 }
-type RawSystemFile = RawSystem;
+pub type RawSystemFile = RawSystem;
+impl RawTomlCodeFile for RawSystemFile {
+    type RawPieces = RawSystem;
+    fn into_pieces(self) -> Self::RawPieces {
+        self
+    }
+}
 #[cfg(test)]
 mod test {
     use super::*;

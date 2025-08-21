@@ -1,12 +1,20 @@
-use crate::toml_parser::raw::{RawComponent, RawComponentField, RawEntityProto, RawEvent, RawEventField, RawSystem, RawSystemEventHandler, RawSystemNormal, RawSystemQuery, RawSystemUpdate};
+use crate::toml_parser::raw::{RawComponent, RawComponentField, RawComponentFile, RawEntityProto, RawEntityProtoFile, RawEvent, RawEventField, RawEventFile, RawSystem, RawSystemEventHandler, RawSystemFile, RawSystemNormal, RawSystemQuery, RawSystemUpdate, RawTomlCodeFile};
 use smart_string::SmartString;
 use std::time::Duration;
+use anyhow::Error;
 use itertools::Itertools;
+use one_or_many::OneOrMany;
+use serde::Deserialize;
 
 type LuaCode = SmartString; //TODO: 后续细化这一类型实现
+pub trait TomlCode: Sized { //标记Trait, 用于约束Parser泛型
+    type RawFile: RawTomlCodeFile + for<'de> serde::Deserialize<'de>;
+    fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, anyhow::Error>;
+
+}
 
 //Type Definition
-#[derive(Debug,Eq,PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum PrimitiveType {
     Float,
     Int,
@@ -14,7 +22,7 @@ pub enum PrimitiveType {
     Str,
     //TODO: 添加更多类型
 }
-#[derive(Debug,Eq,PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum AethaumType {
     Primitive(PrimitiveType),
     Custom(SmartString)
@@ -42,18 +50,18 @@ impl AethaumType {
 }
 
 //Component
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Clone)]
 pub struct ComponentField {
     pub name: SmartString,
     pub type_spec : AethaumType,
     pub default_value: Option<toml::Value>,
     pub description: Option<SmartString>
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq, Clone)]
 pub struct Component {
     pub name: SmartString,
     pub description: Option<SmartString>,
-    pub fields: Vec<ComponentField>
+    pub fields: Option<Vec<ComponentField>>
 }
 #[derive(Debug,PartialEq,Clone,Eq,Hash)]
 pub struct ComponentRef {
@@ -77,7 +85,7 @@ impl From<SmartString> for ComponentRef {
         Self::new(s)
     }
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ComponentConstraint {
     include: Option<Vec<ComponentRef>>, //必须包含的组件
     exclude: Option<Vec<ComponentRef>>, //必须不包含的组件
@@ -93,51 +101,83 @@ impl From<(Option<Vec<SmartString>>, Option<Vec<SmartString>>)> for ComponentCon
     }
 }
 //Event
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct EventField {
     pub name: SmartString,
     pub type_spec : AethaumType,
     pub description: Option<SmartString>
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct Event {
     pub name: SmartString,
     pub description: Option<SmartString>,
-    pub fields: Vec<EventField>
+    pub fields: Option<Vec<EventField>>
 }
 //Entity Protos
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct EntityProto {
     pub name: SmartString,
     pub description: Option<SmartString>,
     pub components: Vec<ComponentRef>
 }
 pub type SystemNormal = RawSystemNormal;
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct SystemQuery {
     pub name: SmartString,
     pub description: Option<SmartString>,
     pub component_constraint: ComponentConstraint
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct SystemEventHandler {
     pub watch_for: SmartString,
     pub priority: u32,
     pub logic: Option<LuaCode>
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct SystemUpdate {
     pub interval: Duration,
     pub condition: Option<LuaCode>,
     pub logic: Option<LuaCode>
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct System {
     pub normal: SystemNormal,
     pub queries: Vec<SystemQuery>,
     pub update: Option<SystemUpdate>,
     pub event_handlers: Vec<SystemEventHandler>
 }
+//TomlCode Mark
+impl TomlCode for Component {
+    type RawFile = RawComponentFile;
+    fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, Error> {
+        Ok(OneOrMany::from_iter(
+            raw.into_iter().map(|x| x.into())
+        ))
+    }
+}
+impl TomlCode for Event {
+    type RawFile = RawEventFile;
+    fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, Error> {
+        Ok(OneOrMany::from_iter(
+            raw.into_iter().map(|x| x.into())
+        ))
+    }
+}
+impl TomlCode for EntityProto {
+    type RawFile = RawEntityProtoFile;
+    fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, Error> {
+        Ok(OneOrMany::from_iter(
+            raw.into_iter().map(|x| x.into())
+        ))
+    }
+}
+impl TomlCode for System {
+    type RawFile = RawSystemFile;
+    fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, Error> {
+        Ok(OneOrMany::One(Box::new(raw.into_pieces().try_into()?)))
+    }
+}
+
 
 //Raw Transformation
 impl From<RawComponentField> for ComponentField {
@@ -154,7 +194,10 @@ impl From<RawComponent> for Component {
     fn from(value: RawComponent) -> Self {
         Component {
             name: value.name,
-            fields: value.fields.into_iter().map(|x| x.into()).collect(),
+            fields: match value.fields {
+                None => None,
+                Some(fields) => Some(fields.into_iter().map(|x| x.into()).collect())
+            },
             description: value.description,
         }
     }
@@ -172,7 +215,10 @@ impl From<RawEvent> for Event {
     fn from(value: RawEvent) -> Self {
         Event {
             name: value.name,
-            fields: value.fields.into_iter().map(|x| x.into()).collect(),
+            fields: match value.fields {
+                None => None,
+                Some(fields) => Some(fields.into_iter().map(|x| x.into()).collect())
+            },
             description: value.description,
         }
     }
