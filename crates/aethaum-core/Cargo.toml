@@ -12,3 +12,5 @@ mlua.workspace = true
 smart-string.workspace = true
 itertools.workspace = true
 one-or-many.workspace = true
+miette.workspace = true
+thiserror.workspace = true
