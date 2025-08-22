@@ -1,11 +1,63 @@
 use smart_string::SmartString;
 use crate::toml_parser::parsed::{Component, ComponentRef, EntityProto, EntityProtoRef, Event, EventRef, System, SystemRef};
 
+#[derive(Debug)]
+#[derive(Clone)]
 pub enum EcsThingRef {
     Component(ComponentRef),
     Event(EventRef),
     EntityProto(EntityProtoRef),
     System(SystemRef)
+}
+impl EcsThingRef {
+    pub fn as_error_str(&self) -> String {
+        match self {
+            EcsThingRef::Component(component_ref) => {
+                format!("Component \"{}\"", component_ref)
+            },
+            EcsThingRef::Event(event_ref) => {
+                format!("Event \"{}\"", event_ref)
+            },
+            EcsThingRef::EntityProto(entity_proto_ref) => {
+                format!("Entity Proto \"{}\"", entity_proto_ref)
+            },
+            EcsThingRef::System(system_ref) => {
+                format!("System \"{}\"", system_ref)
+            }
+        }
+    }
+    pub fn module_name(&self) -> &str {
+        match self {
+            EcsThingRef::Component(component_ref) => {
+                component_ref.module_name.as_ref().map(|s| s.as_str()).unwrap_or_default()
+            },
+            EcsThingRef::Event(event_ref) => {
+                event_ref.module_name.as_ref().map(|s| s.as_str()).unwrap_or_default()
+            },
+            EcsThingRef::EntityProto(entity_proto_ref) => {
+                entity_proto_ref.module_name.as_ref().map(|s| s.as_str()).unwrap_or_default()
+            }
+            EcsThingRef::System(system_ref) => {
+                system_ref.module_name.as_ref().map(|s| s.as_str()).unwrap_or_default()
+            }
+        }
+    }
+    pub fn name(&self) -> &str {
+        match self {
+            EcsThingRef::Component(component_ref) => {
+                component_ref.name.as_str()
+            }
+            EcsThingRef::Event(event_ref) => {
+                event_ref.name.as_str()
+            }
+            EcsThingRef::EntityProto(entity_proto_ref) => {
+                entity_proto_ref.name.as_str()
+            }
+            EcsThingRef::System(system_ref) => {
+                system_ref.name.as_str()
+            }
+        }
+    }
 }
 impl std::fmt::Display for EcsThingRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -18,7 +70,7 @@ impl std::fmt::Display for EcsThingRef {
     }
 }
 
-pub struct ModulePath<'a> {
+pub struct  ModulePath<'a> {
     pub module_name: &'a SmartString,
     pub thing_name: &'a EcsThingRef
 }
