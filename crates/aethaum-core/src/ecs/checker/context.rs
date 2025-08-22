@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::ecs::module::EcsModule;
 
 pub struct ModuleCheckTree {
-    modules: HashMap<SmartString, ModuleCheckContext> // 模块名 -> 模块上下文
+    modules: HashMap<String, ModuleCheckContext> // 模块名 -> 模块上下文
     //目前，模块是扁平的结构，暂时不需要树结构
 }
 impl ModuleCheckTree {
@@ -14,16 +14,16 @@ impl ModuleCheckTree {
             modules: HashMap::new(),
         }
     }
-    pub fn get_module_context(&self, name: &SmartString) -> Option<&ModuleCheckContext> {
+    pub fn get_module_context(&self, name: &str) -> Option<&ModuleCheckContext> {
         self.modules.get(name)
     }
-    pub fn get_module_context_mut(&mut self, name: &SmartString) -> Option<&ModuleCheckContext> {
-        self.modules.get(name)
+    pub fn get_module_context_mut(&mut self, name: &str) -> Option<&mut ModuleCheckContext> {
+        self.modules.get_mut(name)
     }
-    pub fn get_tree(&self) -> &HashMap<SmartString, ModuleCheckContext> {
+    pub fn get_tree(&self) -> &HashMap<String, ModuleCheckContext> {
         &self.modules
     }
-    pub fn get_tree_mut(&mut self) -> &mut HashMap<SmartString, ModuleCheckContext> {
+    pub fn get_tree_mut(&mut self) -> &mut HashMap<String, ModuleCheckContext> {
         &mut self.modules
     }
 }
