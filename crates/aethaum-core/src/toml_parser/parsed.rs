@@ -3,6 +3,7 @@ use crate::toml_parser::raw::{RawComponent, RawComponentField, RawComponentFile,
 use smart_string::SmartString;
 use std::time::Duration;
 use anyhow::Error;
+use bevy_ecs::label::DynHash;
 use itertools::Itertools;
 use one_or_many::OneOrMany;
 use serde::Deserialize;
@@ -89,28 +90,44 @@ pub struct Component {
 #[derive(Debug,PartialEq,Clone,Eq,Hash)]
 pub struct ComponentRef {
     pub name: SmartString,
+    pub module_name: Option<SmartString>,
 }
 impl ComponentRef {
-    pub fn new(name: impl Into<SmartString>) -> Self {
-        Self { name: name.into() }
+    pub fn new(module_name: Option<impl Into<SmartString>>, name: impl Into<SmartString>) -> Self {
+        Self { name: name.into() , module_name: module_name.map(|s| s.into())}
     }
-    pub fn as_str(&self) -> &str {
-        &self.name
-    }
-}
-impl From<&str> for ComponentRef {
-    fn from(s: &str) -> Self {
-        Self::new(s)
+    pub fn as_path_str(&self) -> String {
+        match &self.module_name {
+            None => self.name.to_string(),
+            Some(module_name) => format!("{}::{}", module_name, self.name)
+        }
     }
 }
-impl From<SmartString> for ComponentRef {
-    fn from(s: SmartString) -> Self {
-        Self::new(s)
+impl From<(&str, &str)> for ComponentRef {
+    fn from((module_name,name): (&str,&str)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl From<(SmartString, SmartString)> for ComponentRef {
+    fn from((module_name, name): (SmartString,SmartString)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl TryFrom<SmartString> for ComponentRef {
+    type Error = anyhow::Error;
+    fn try_from(s: SmartString) -> Result<Self, Self::Error> {
+        let res : Vec<&str> = s.split("::").collect();
+        match res.len() {
+            0 => anyhow::bail!("Invalid component ref: {}, component name is required", s),
+            1 => Ok(Self::new(None::<SmartString>, s)),
+            2 => Ok(Self::new(Some(res[0]), res[1])),
+            _ => anyhow::bail!("Invalid component ref: {}, nested module is currently not allowed", s),
+        }
     }
 }
 impl std::fmt::Display for ComponentRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.as_path_str())
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -118,14 +135,20 @@ pub struct ComponentConstraint {
     include: Option<Vec<ComponentRef>>, //必须包含的组件
     exclude: Option<Vec<ComponentRef>>, //必须不包含的组件
 }
-impl From<(Option<Vec<SmartString>>, Option<Vec<SmartString>>)> for ComponentConstraint {
-    fn from(
+impl ComponentConstraint {
+    pub fn chained_iter(&self) -> impl Iterator<Item = &ComponentRef> { //TODO: test it
+        self.include.iter().flatten().chain(self.exclude.iter().flatten())
+    }
+}
+impl TryFrom<(Option<Vec<SmartString>>, Option<Vec<SmartString>>)> for ComponentConstraint {
+    type Error = anyhow::Error;
+    fn try_from(
         (include, exclude): (Option<Vec<SmartString>>, Option<Vec<SmartString>>),
-    ) -> Self {
-        Self {
-            include: include.map(|v| v.into_iter().map(|s| s.into()).collect()),
-            exclude: exclude.map(|v| v.into_iter().map(|s| s.into()).collect()),
-        }
+    ) -> Result<Self, Self::Error> {
+        Ok(Self {
+            include: include.map(|v| v.into_iter().map(|s| s.try_into()).try_collect()).transpose()?,
+            exclude: exclude.map(|v| v.into_iter().map(|s| s.try_into()).try_collect()).transpose()?,
+        })
     }
 }
 //Event
@@ -144,23 +167,44 @@ pub struct Event {
 #[derive(Debug,PartialEq,Clone, Eq, Hash)]
 pub struct EventRef {
     pub name: SmartString,
+    pub module_name: Option<SmartString>,
 }
 impl EventRef {
-    pub fn new(name: impl Into<SmartString>) -> Self {
-        Self { name: name.into() }
+    pub fn new(module_name: Option<impl Into<SmartString>>,name: impl Into<SmartString>) -> Self {
+        Self { name: name.into() , module_name: module_name.map(|s| s.into())}
     }
-    pub fn as_str(&self) -> &str {
-        &self.name
+    pub fn as_path_str(&self) -> String {
+        match &self.module_name {
+            None => self.name.to_string(),
+            Some(module_name) => format!("{}::{}", module_name, self.name)
+        }
     }
 }
-impl From<&str> for EventRef {
-    fn from(s: &str) -> Self {
-        Self::new(s)
+impl From<(&str,&str)> for EventRef {
+    fn from((module_name,name): (&str, &str)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl From<(SmartString, SmartString)> for EventRef {
+    fn from((module_name, name): (SmartString, SmartString)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl TryFrom<SmartString> for EventRef {
+    type Error = anyhow::Error;
+    fn try_from(s: SmartString) -> Result<Self, Self::Error> {
+        let res : Vec<&str> = s.split("::").collect();
+        match res.len() {
+            0 => anyhow::bail!("Invalid event ref: {}, event name is required", s),
+            1 => Ok(Self::new(None::<SmartString>, s)),
+            2 => Ok(Self::new(Some(res[0]), res[1])),
+            _ => anyhow::bail!("Invalid event ref: {}, nested module is currently not allowed", s),
+        }
     }
 }
 impl std::fmt::Display for EventRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.as_path_str())
     }
 }
 //Entity Protos
@@ -173,23 +217,44 @@ pub struct EntityProto {
 #[derive(Debug,PartialEq,Clone, Eq, Hash)]
 pub struct EntityProtoRef {
     pub name: SmartString,
+    pub module_name: Option<SmartString>,
 }
 impl EntityProtoRef {
-    pub fn new(name: impl Into<SmartString>) -> Self {
-        Self { name: name.into() }
+    pub fn new(module_name: Option<impl Into<SmartString>>,name: impl Into<SmartString>) -> Self {
+        Self { name: name.into(), module_name: module_name.map(|s| s.into()) }
     }
-    pub fn as_str(&self) -> &str {
-        &self.name
+    pub fn as_path_str(&self) -> String {
+        match &self.module_name {
+            None => self.name.to_string(),
+            Some(module_name) => format!("{}::{}", module_name, self.name)
+        }
     }
 }
-impl From<&str> for EntityProtoRef {
-    fn from(s: &str) -> Self {
-        Self::new(s)
+impl From<(&str,&str)> for EntityProtoRef {
+    fn from((module_name, name): (&str, &str)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl From<(SmartString, SmartString)> for EntityProtoRef {
+    fn from((module_name, name): (SmartString, SmartString)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl TryFrom<SmartString> for EntityProtoRef {
+    type Error = anyhow::Error;
+    fn try_from(s: SmartString) -> Result<Self, Self::Error> {
+        let res : Vec<&str> = s.split("::").collect();
+        match res.len() {
+            0 => anyhow::bail!("Invalid entity proto ref: {}, entity proto name is required", s),
+            1 => Ok(Self::new(None::<SmartString>, s)),
+            2 => Ok(Self::new(Some(res[0]), res[1])),
+            _ => anyhow::bail!("Invalid entity proto ref: {}, nested module is currently not allowed", s)
+        }
     }
 }
 impl std::fmt::Display for EntityProtoRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.as_path_str())
     }
 }
 //System
@@ -202,7 +267,7 @@ pub struct SystemQuery {
 }
 #[derive(Debug,PartialEq,Clone)]
 pub struct SystemEventHandler {
-    pub watch_for: SmartString,
+    pub watch_for: EventRef,
     pub priority: u32,
     pub logic: Option<LuaCode>
 }
@@ -222,18 +287,39 @@ pub struct System {
 #[derive(Debug,PartialEq,Clone, Eq, Hash)]
 pub struct SystemRef {
     pub name: SmartString,
+    pub module_name: Option<SmartString>,
 }
 impl SystemRef {
-    pub fn new(name: impl Into<SmartString>) -> Self {
-        Self { name: name.into() }
+    pub fn new(module_name: Option<impl Into<SmartString>>,name: impl Into<SmartString>) -> Self {
+        Self { name: name.into(), module_name: module_name.map(|s| s.into()) }
     }
-    pub fn as_str(&self) -> &str {
-        &self.name
+    pub fn as_path_str(&self) -> String {
+        match &self.module_name {
+            None => self.name.to_string(),
+            Some(module_name) => format!("{}::{}", module_name, self.name)
+        }
     }
 }
-impl From<&str> for SystemRef {
-    fn from(s: &str) -> Self {
-        Self::new(s)
+impl From<(&str,&str)> for SystemRef {
+    fn from((module_name, name): (&str, &str)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl From<(SmartString, SmartString)> for SystemRef {
+    fn from((module_name, name): (SmartString, SmartString)) -> Self {
+        Self::new(Some(module_name), name)
+    }
+}
+impl TryFrom<SmartString> for SystemRef {
+    type Error = anyhow::Error;
+    fn try_from(s: SmartString) -> Result<Self, Self::Error> {
+        let res : Vec<&str> = s.split("::").collect();
+        match res.len() {
+            0 => anyhow::bail!("Invalid system ref: {}, system name is required", s),
+            1 => Ok(Self::new(None::<SmartString>, s)),
+            2 => Ok(Self::new(Some(res[0]), res[1])),
+            _ => anyhow::bail!("Invalid system ref: {}, nested module is currently not allowed", s)
+        }
     }
 }
 impl std::fmt::Display for SystemRef {
@@ -261,8 +347,10 @@ impl TomlCode for Event {
 impl TomlCode for EntityProto {
     type RawFile = RawEntityProtoFile;
     fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, Error> {
+        let protos: Vec<_> = raw.into_iter().map(|x| x.try_into()).try_collect()?;
+        //TODO: remove the try_collect
         Ok(OneOrMany::from_iter(
-            raw.into_iter().map(|x| x.into())
+            protos.into_iter()
         ))
     }
 }
@@ -318,31 +406,33 @@ impl From<RawEvent> for Event {
         }
     }
 }
-impl From<RawEntityProto> for EntityProto {
-    fn from(value: RawEntityProto) -> Self {
-        EntityProto {
+impl TryFrom<RawEntityProto> for EntityProto {
+    type Error = anyhow::Error;
+    fn try_from(value: RawEntityProto) -> Result<Self, Self::Error> {
+        Ok(EntityProto {
             name: value.name,
             description: value.description,
-            components: value.components.into_iter().map(|x| x.into()).collect(),
-        }
+            components: value.components.into_iter().map(|x| x.try_into()).try_collect()?,
+        })
     }
 }
-impl From<RawSystemQuery> for SystemQuery {
-    fn from(value: RawSystemQuery) -> Self {
-        SystemQuery {
+impl TryFrom<RawSystemQuery> for SystemQuery {
+    type Error = anyhow::Error;
+    fn try_from(value: RawSystemQuery) -> Result<Self, Self::Error> {
+        Ok(SystemQuery {
             name: value.name,
             description: value.description,
-            component_constraint: ComponentConstraint::from(
+            component_constraint: ComponentConstraint::try_from(
                 (value.components_include, value.components_exclude)
-            )
-        }
+            )?
+        })
     }
 }
 impl TryFrom<RawSystemEventHandler> for SystemEventHandler {
     type Error = anyhow::Error; //TODO: better error type further
     fn try_from(value: RawSystemEventHandler) -> Result<Self, Self::Error> {
         Ok(SystemEventHandler {
-            watch_for: value.watch_for,
+            watch_for: value.watch_for.try_into()?,
             priority: match value.priority {
                 Some(priority) => {
                    match priority {
@@ -390,7 +480,7 @@ impl TryFrom<RawSystem> for System {
     fn try_from(value: RawSystem) -> Result<Self, Self::Error> {
         Ok(System {
             normal: value.normal.into(),
-            queries: value.queries.into_iter().map(|q| q.into()).collect(),
+            queries: value.queries.into_iter().map(|q| q.try_into()).try_collect()?,
             update: value.update.map(TryInto::try_into).transpose()?,
             event_handlers: value.event_handlers
                 .into_iter()
