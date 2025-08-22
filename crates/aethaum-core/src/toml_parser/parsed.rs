@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::fmt::Display;
-use crate::toml_parser::raw::{RawComponent, RawComponentField, RawComponentFile, RawEntityProto, RawEntityProtoFile, RawEvent, RawEventField, RawEventFile, RawSystem, RawSystemEventHandler, RawSystemFile, RawSystemNormal, RawSystemQuery, RawSystemUpdate, RawTomlCodeFile};
+use std::path::PathBuf;
+use crate::toml_parser::raw::{RawComponent, RawComponentField, RawComponentFile, RawEntityProto, RawEntityProtoFile, RawEvent, RawEventField, RawEventFile, RawSystem, RawSystemEventHandler, RawSystemFile, RawSystemNormal, RawSystemQuery, RawSystemUpdate, RawTomlCodeFile, RawWorld, RawWorldBuild, RawWorldCargo, RawWorldModules, RawWorldNormal};
 use smart_string::SmartString;
 use std::time::Duration;
 use anyhow::Error;
@@ -377,10 +379,7 @@ impl From<RawComponent> for Component {
     fn from(value: RawComponent) -> Self {
         Component {
             name: value.name,
-            fields: match value.fields {
-                None => None,
-                Some(fields) => Some(fields.into_iter().map(|x| x.into()).collect())
-            },
+            fields: value.fields.map(|fields| fields.into_iter().map(|x| x.into()).collect()),
             description: value.description,
         }
     }
@@ -398,10 +397,7 @@ impl From<RawEvent> for Event {
     fn from(value: RawEvent) -> Self {
         Event {
             name: value.name,
-            fields: match value.fields {
-                None => None,
-                Some(fields) => Some(fields.into_iter().map(|x| x.into()).collect())
-            },
+            fields: value.fields.map(|fields| fields.into_iter().map(|x| x.into()).collect()),
             description: value.description,
         }
     }
@@ -494,3 +490,66 @@ impl AethaumRef for ComponentRef {}
 impl AethaumRef for EventRef {}
 impl AethaumRef for EntityProtoRef {}
 impl AethaumRef for SystemRef {}
+#[derive(Debug,PartialEq,Clone)]
+pub struct WorldNormal {
+    pub name: SmartString,
+    pub version: SmartString,
+    pub author:  SmartString
+}
+impl From<RawWorldNormal> for WorldNormal {
+    fn from(value: RawWorldNormal) -> Self {
+        WorldNormal {
+            name: value.name,
+            version: value.version,
+            author: value.author
+        }
+    }
+}
+#[derive(Debug,PartialEq,Clone)]
+pub struct WorldModules {
+    pub modules: HashMap<SmartString, PathBuf>,
+}
+impl From<RawWorldModules> for WorldModules {
+    fn from(value: RawWorldModules) -> Self {
+        WorldModules {
+            modules: value.modules.into_iter().map(|(k,v)| (k, PathBuf::from(v.as_str()))).collect()
+        }
+    }
+}
+#[derive(Debug,PartialEq,Clone)]
+pub struct WorldBuild {
+    pub output_dir: SmartString,
+}
+impl From<RawWorldBuild> for WorldBuild {
+    fn from(value: RawWorldBuild) -> Self {
+        WorldBuild {
+            output_dir: value.output_dir,
+        }
+    }
+}
+#[derive(Debug,PartialEq,Clone)]
+pub struct WorldCargo {
+
+}
+impl From<RawWorldCargo> for WorldCargo {
+    fn from(_value: RawWorldCargo) -> Self {
+        WorldCargo {}
+    }
+}
+#[derive(Debug,PartialEq,Clone)]
+pub struct World {
+    pub normal: WorldNormal,
+    pub modules: WorldModules,
+    pub build: Option<WorldBuild>,
+    pub cargo: Option<WorldCargo>,
+}
+impl From<RawWorld> for World {
+    fn from(value: RawWorld) -> Self {
+        World {
+            normal: value.normal.into(),
+            modules: value.modules.into(),
+            build: value.build.map(Into::into),
+            cargo: value.cargo.map(Into::into),
+        }
+    }
+}

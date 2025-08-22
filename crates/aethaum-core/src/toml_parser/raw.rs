@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 ///原始toml解析，类型，模块路径在后续处理
-
 use serde::{Deserialize, Serialize};
 use smart_string::SmartString;
 
@@ -130,6 +130,36 @@ impl RawTomlCodeFile for RawSystemFile {
         self
     }
 }
+//World
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RawWorldNormal {
+    pub name: SmartString,
+    pub version: SmartString,
+    pub author:  SmartString
+}
+#[derive(Debug,Serialize,Deserialize)]
+pub struct RawWorldModules {
+    pub modules: HashMap<SmartString, SmartString>,
+}
+#[derive(Debug,Serialize,Deserialize)]
+pub struct RawWorldBuild {
+    pub output_dir: SmartString,
+}
+#[derive(Debug,Serialize,Deserialize)]
+pub struct RawWorldCargo {
+
+}
+#[derive(Debug,Serialize,Deserialize)]
+pub struct RawWorld {
+    #[serde(rename = "world")]
+    pub normal: RawWorldNormal,
+    #[serde(flatten)]
+    pub modules: RawWorldModules,
+    pub build: Option<RawWorldBuild>,
+    pub cargo: Option<RawWorldCargo>,
+}
+type RawWorldFile = RawWorld;
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -310,5 +340,30 @@ mod test {
         assert_eq!(raw_system.event_handlers[1].watch_for, "EntityHealed");
         assert_eq!(raw_system.queries[0].name, "living_entities");
         assert_eq!(raw_system.queries[1].name, "damaged_entities");
+    }
+    #[test]
+    fn test_parse_world_file() {
+        let toml_str = r#"
+        [world]
+        name = "MyAIWorld"
+        version = "0.1.0"
+        author = "Your Name"
+
+        [modules]
+        combat = "modules/combat"
+        explore = "modules/explore"
+
+        [build]
+        output_dir = "generated"
+
+        [cargo]
+        # 标准 Cargo 配置
+        "#;
+        let raw_world : RawWorldFile = toml::from_str(toml_str).unwrap();
+        assert_eq!(raw_world.normal.name, "MyAIWorld");
+        assert_eq!(raw_world.normal.version, "0.1.0");
+        assert_eq!(raw_world.normal.author, "Your Name");
+        assert_eq!(raw_world.build.unwrap().output_dir, "generated");
+        println!("{:?}", raw_world.modules)
     }
 }
