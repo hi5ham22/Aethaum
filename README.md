@@ -41,6 +41,7 @@ world/
 │       ├── systems/
 │       ├── events/
 │       └── entity_protos/
+├── scripts/				   # Lua脚本	
 └── generated/                 # 生成的Rust代码目录
 ```
 
@@ -133,12 +134,14 @@ interval = 0.1  # 更新间隔(秒)
 condition = '''
 return entity.health.value > 0
 '''
+#或者，condition_file = "script/xxx.lua"
 
 # 更新逻辑 (Lua)
 logic = '''
 entity.health.value = entity.health.value - entity.damage.amount
 entity.damage.amount = 0
 '''
+#或者，logic_file = "script/xxx.lua"
 
 # 事件处理器
 [[event_handlers]]
@@ -151,12 +154,7 @@ entity.health.value = entity.health.value - event.damage
 [[event_handlers]]
 watch_for = "EntityHealed"
 priority = 20
-logic = '''
-entity.health.value = math.min(
-    entity.health.value + event.amount,
-    entity.health.max_value
-)
-'''
+logic_file = "scripts/entity_heal.lua"
 ```
 
 ### 🧩 components/*.toml - 组件定义

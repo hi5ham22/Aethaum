@@ -39,6 +39,7 @@ world/
 │       ├── systems/
 │       ├── events/
 │       └── entity_protos/
+├── scripts/				   # Lua Scripts
 └── generated/                 # Generated Rust code directory
 ```
 
@@ -131,12 +132,14 @@ interval = 0.1  # Update interval (seconds)
 condition = '''
 return entity.health.value > 0
 '''
+# Or condition_file = "sciprt/xxx.lua"
 
 # Update logic (Lua)
 logic = '''
 entity.health.value = entity.health.value - entity.damage.amount
 entity.damage.amount = 0
 '''
+# Or logic_file = "script/xxx.lua"
 
 # Event handlers
 [[event_handlers]]
@@ -149,12 +152,7 @@ entity.health.value = entity.health.value - event.damage
 [[event_handlers]]
 watch_for = "EntityHealed"
 priority = 20
-logic = '''
-entity.health.value = math.min(
-    entity.health.value + event.amount,
-    entity.health.max_value
-)
-'''
+logic_file = "scripts/entity_heal.lua"
 ```
 
 ### 🧩 components/*.toml - Component Definitions
