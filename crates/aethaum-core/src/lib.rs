@@ -1,5 +1,6 @@
 mod toml_parser;
 mod ecs;
+mod code_generator;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
