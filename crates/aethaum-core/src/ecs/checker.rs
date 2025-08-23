@@ -146,3 +146,13 @@ impl AethaumChecker {
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use crate::ecs::loader::ProjectLoader;
+    use super::*;
+    #[test]
+    fn test_project_checker() {
+        let project = ProjectLoader::new(r#"D:\Aethaum\test_project"#.into()).load().unwrap();
+        AethaumChecker::run_check(project).unwrap();
+    }
+}

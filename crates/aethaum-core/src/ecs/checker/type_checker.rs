@@ -70,3 +70,117 @@ impl TypeCheckable for EcsModule {
         Ok(())
     }
 }
+#[cfg(test)]
+mod tests {
+    use crate::toml_parser::parsed::Component;
+    use crate::toml_parser::raw::{RawComponentFile, RawTomlCodeFile};
+    use super::*;
+    #[test]
+    fn test_type_check_passed() {
+        let toml_file = r#"
+            #在一个toml文件中可以定义多个组件，normal字段不会参与转译，作为注释和元信息提供
+            [normal]
+            tags = ["combat", "stats"]
+            description = "战斗相关组件"
+
+            # 健康组件
+            [[components]]
+            name = "Health"
+            description = "实体健康值"
+
+            [[components.fields]]
+            name = "value"
+            type = "float"
+            default = 100.0
+            description = "当前健康值"
+
+            [[components.fields]]
+            name = "max_value"
+            type = "float"
+            default = 100.0
+            description = "最大健康值"
+
+            # 位置组件
+            [[components]]
+            name = "Position"
+            description = "实体位置"
+
+            [[components.fields]]
+            name = "x"
+            type = "float"
+            default = 0.0
+            description = "X坐标"
+
+            [[components.fields]]
+            name = "y"
+            type = "float"
+            default = 0.0
+            description = "Y坐标"
+        "#;
+        let components = toml::from_str::<RawComponentFile>(toml_file).unwrap().into_pieces();
+        let components = components.into_iter()
+            .map(|c| c.into())
+            .collect::<Vec<Component>>();
+        for comp in components {
+            for fields in comp.fields.unwrap() {
+                fields.check_type().unwrap();
+            }
+        }
+    }
+    #[test]
+    fn test_type_check_error() {
+        let toml_file = r#"
+            #在一个toml文件中可以定义多个组件，normal字段不会参与转译，作为注释和元信息提供
+            [normal]
+            tags = ["combat", "stats"]
+            description = "战斗相关组件"
+
+            # 健康组件
+            [[components]]
+            name = "Health"
+            description = "实体健康值"
+
+            [[components.fields]]
+            name = "value"
+            type = "float"
+            default = "a"
+            description = "当前健康值"
+
+            [[components.fields]]
+            name = "max_value"
+            type = "float"
+            default = 100.0
+            description = "最大健康值"
+
+            # 位置组件
+            [[components]]
+            name = "Position"
+            description = "实体位置"
+
+            [[components.fields]]
+            name = "x"
+            type = "float"
+            default = "a"
+            description = "X坐标"
+
+            [[components.fields]]
+            name = "y"
+            type = "float"
+            default = 0.0
+            description = "Y坐标"
+        "#;
+        let components = toml::from_str::<RawComponentFile>(toml_file).unwrap().into_pieces();
+        let components = components.into_iter()
+            .map(|c| c.into())
+            .collect::<Vec<Component>>();
+        let mut errors = Vec::new();
+        for comp in components {
+            for fields in comp.fields.unwrap() {
+                if let Err(e) = fields.check_type() {
+                    errors.push(e);
+                }
+            }
+        }
+        assert_eq!(errors.len(), 2);
+    }
+}

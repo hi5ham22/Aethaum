@@ -54,11 +54,13 @@ impl InModuleChecker {
     pub fn try_register(thing: EcsThingRef, module_context: &mut ModuleCheckContext) -> Result<(),InModuleCheckError> {
         match thing {
             EcsThingRef::Component(component_ref) => {
-                if component_ref.module_name.is_some() && component_ref.module_name != Some(module_context.name.clone()) {
-                    //TODO: remove the clone
-                    return Err(
-                        InModuleCheckError::raise_define_external(EcsThingRef::Component(component_ref))
-                    )
+                if let Some(module_name) = component_ref.module_name.as_ref() {
+                    if module_name.as_str() != module_context.name.as_str() {
+                        //TODO: remove the clone
+                        return Err(
+                            InModuleCheckError::raise_define_external(EcsThingRef::Component(component_ref.clone()))
+                        );
+                    }
                 }
                 if module_context.defined_components.contains(&component_ref) {
                     return Err(
@@ -69,10 +71,13 @@ impl InModuleChecker {
                 Ok(())
             },
             EcsThingRef::Event(event_ref) => {
-                if event_ref.module_name.is_some() && event_ref.module_name.as_ref().unwrap() != &module_context.name {
-                    return Err(
-                        InModuleCheckError::raise_define_external(EcsThingRef::Event(event_ref))
-                    );
+                if let Some(module_name) = event_ref.module_name.as_ref() {
+                    if module_name.as_str() != module_context.name.as_str() {
+                        //TODO: remove the clone
+                        return Err(
+                            InModuleCheckError::raise_define_external(EcsThingRef::Event(event_ref.clone()))
+                        );
+                    }
                 }
                 if module_context.defined_events.contains(&event_ref) {
                     return Err(
@@ -83,10 +88,13 @@ impl InModuleChecker {
                 Ok(())
             },
             EcsThingRef::EntityProto(entity_proto_ref) => {
-                if entity_proto_ref.module_name.is_some() {
-                    return Err(
-                        InModuleCheckError::raise_define_external(EcsThingRef::EntityProto(entity_proto_ref))
-                    );
+                if let Some(module_name) = entity_proto_ref.module_name.as_ref() {
+                    if module_name.as_str() != module_context.name.as_str() {
+                        //TODO: remove the clone
+                        return Err(
+                            InModuleCheckError::raise_define_external(EcsThingRef::EntityProto(entity_proto_ref.clone()))
+                        );
+                    }
                 }
                 if module_context.defined_entity_protos.contains(&entity_proto_ref) {
                     return Err(
@@ -97,10 +105,13 @@ impl InModuleChecker {
                 Ok(())
             },
             EcsThingRef::System(system_ref) => {
-                if system_ref.module_name.is_some() {
-                    return Err(
-                        InModuleCheckError::raise_define_external(EcsThingRef::System(system_ref))
-                    );
+                if let Some(module_name) = system_ref.module_name.as_ref() {
+                    if module_name.as_str() != module_context.name.as_str() {
+                        //TODO: remove the clone
+                        return Err(
+                            InModuleCheckError::raise_define_external(EcsThingRef::System(system_ref.clone()))
+                        );
+                    }
                 }
                 if module_context.defined_systems.contains(&system_ref) {
                     return Err(
@@ -113,55 +124,72 @@ impl InModuleChecker {
         }
     }
     ///检查模块内引用,应当等待所有组件，事件，实体原型，系统都被注册完后调用
+    //TODO: Try reduce the clones
     pub fn check_in_module_component_ref(component_ref: &ComponentRef, module_context: &ModuleCheckContext) -> Result<(), InModuleCheckError> {
-        if component_ref.module_name.is_some() && component_ref.module_name.as_ref() != Some(&module_context.name) {
-            return Err(
-                InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::Component(component_ref.clone()))
-            );
-        }
-        if !module_context.defined_components.contains(component_ref) {
-            return Err(
-                InModuleCheckError::raise_not_defined(EcsThingRef::Component(component_ref.clone()))
-            )
+        if let Some(module_name) = component_ref.module_name.as_ref() {
+            if module_name.as_str() != module_context.name.as_str() {
+                return Err(
+                    InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::Component(component_ref.clone()))
+                );
+            }
+        }else {
+            let local_ref = ComponentRef::new(Some(module_context.name.clone()),component_ref.name.clone());
+            if !module_context.defined_components.contains(&local_ref) {
+                return Err(
+                    InModuleCheckError::raise_not_defined(EcsThingRef::Component(component_ref.clone()))
+                )
+            }
         }
         Ok(())
     }
     pub fn check_in_module_event_ref(event_ref: &EventRef, module_context: &ModuleCheckContext) -> Result<(), InModuleCheckError> {
-        if event_ref.module_name.is_some() && event_ref.module_name.as_ref() != Some(&module_context.name) {
-            return Err(
-                InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::Event(event_ref.clone()))
-            );
-        }
-        if !module_context.defined_events.contains(event_ref) {
-            return Err(
-                InModuleCheckError::raise_not_defined(EcsThingRef::Event(event_ref.clone()))
-            )
+        if let Some(module_name) = event_ref.module_name.as_ref() {
+            if module_name.as_str() != module_context.name.as_str() {
+                return Err(
+                    InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::Event(event_ref.clone()))
+                );
+            }
+        }else {
+            let local_ref = EventRef::new(Some(module_context.name.clone()),event_ref.name.clone());
+            if !module_context.defined_events.contains(&local_ref) {
+                return Err(
+                    InModuleCheckError::raise_not_defined(EcsThingRef::Event(event_ref.clone()))
+                )
+            }
         }
         Ok(())
     }
     pub fn check_in_module_entity_proto_ref(entity_proto_ref: &EntityProtoRef, module_context: &ModuleCheckContext) -> Result<(), InModuleCheckError> {
-        if entity_proto_ref.module_name.is_some() && entity_proto_ref.module_name.as_ref() != Some(&module_context.name) {
-            return Err(
-                InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::EntityProto(entity_proto_ref.clone()))
-            );
-        }
-        if !module_context.defined_entity_protos.contains(entity_proto_ref) {
-            return Err(
-                InModuleCheckError::raise_not_defined(EcsThingRef::EntityProto(entity_proto_ref.clone()))
-            );
+        if let Some(module_name) = entity_proto_ref.module_name.as_ref() {
+            if module_name.as_str() != module_context.name.as_str() {
+                return Err(
+                    InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::EntityProto(entity_proto_ref.clone()))
+                );
+            }
+        }else {
+            let local_ref = EntityProtoRef::new(Some(module_context.name.clone()),entity_proto_ref.name.clone());
+            if !module_context.defined_entity_protos.contains(&local_ref) {
+                return Err(
+                    InModuleCheckError::raise_not_defined(EcsThingRef::EntityProto(entity_proto_ref.clone()))
+                )
+            }
         }
         Ok(())
     }
     pub fn check_in_module_system_ref(system_ref: &SystemRef, module_context: &ModuleCheckContext) -> Result<(), InModuleCheckError> {
-        if system_ref.module_name.is_some() && system_ref.module_name.as_ref() != Some(&module_context.name) {
-            return Err(
-                InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::System(system_ref.clone()))
-            );
-        }
-        if !module_context.defined_systems.contains(system_ref) {
-            return Err(
-                InModuleCheckError::raise_not_defined(EcsThingRef::System(system_ref.clone()))
-            )
+        if let Some(module_name) = system_ref.module_name.as_ref() {
+            if module_name.as_str() != module_context.name.as_str() {
+                return Err(
+                    InModuleCheckError::raise_propagate_to_cross_check(EcsThingRef::System(system_ref.clone()))
+                );
+            }
+        }else {
+            let local_ref = SystemRef::new(Some(module_context.name.clone()),system_ref.name.clone());
+            if !module_context.defined_systems.contains(&local_ref) {
+                return Err(
+                    InModuleCheckError::raise_not_defined(EcsThingRef::System(system_ref.clone()))
+                )
+            }
         }
         Ok(())
     }
@@ -177,11 +205,19 @@ impl InModuleCheckable for SystemQuery {
 
         for component_ref in self.component_constraint.chained_iter() {
             if let Err(e) = InModuleChecker::check_in_module_component_ref(component_ref, module_context) {
-                errors.push(e);
+                match e {
+                    InModuleCheckError::Multiple { errors: inner_errors } => {
+                        errors.extend(inner_errors)
+                    },
+                    _ => errors.push(e)
+                }
             }
         }
 
         if !errors.is_empty() {
+            if errors.len() == 1 {
+                return Err(errors.pop().unwrap());
+            }
             return Err(InModuleCheckError::raise_multiple(errors));
         }
 
@@ -199,17 +235,30 @@ impl InModuleCheckable for System {
 
         for query in self.queries.iter() {
             if let Err(e) = query.check_in_module(module_context) {
-                errors.push(e);
+                match e {
+                    InModuleCheckError::Multiple { errors: inner_errors } => {
+                        errors.extend(inner_errors)
+                    },
+                    _ => errors.push(e)
+                }
             }
         }
 
         for event_handler in self.event_handlers.iter() {
             if let Err(e) = event_handler.check_in_module(module_context) {
-                errors.push(e);
+                match e {
+                    InModuleCheckError::Multiple { errors: inner_errors } => {
+                        errors.extend(inner_errors)
+                    },
+                    _ => errors.push(e)
+                }
             }
         }
 
         if !errors.is_empty() {
+            if errors.len() == 1 {
+                return Err(errors.pop().unwrap());
+            }
             return Err(InModuleCheckError::raise_multiple(errors));
         }
         Ok(())
@@ -221,11 +270,19 @@ impl InModuleCheckable for EntityProto {
 
         for component_ref in self.components.iter() {
             if let Err(e) = InModuleChecker::check_in_module_component_ref(component_ref, module_context) {
-                errors.push(e);
+                match e {
+                    InModuleCheckError::Multiple { errors: inner_errors } => {
+                        errors.extend(inner_errors)
+                    },
+                    _ => errors.push(e)
+                }
             }
         }
 
         if !errors.is_empty() {
+            if errors.len() == 1 {
+                return Err(errors.pop().unwrap());
+            }
             return Err(InModuleCheckError::raise_multiple(errors));
         }
 
@@ -268,24 +325,66 @@ impl InModuleCheckable for EcsModule {
                 }
             }
         }
+        println!(" module: {:?}", module_context);
         //ref checking
         if let Some(systems) = &self.systems {
             for system in systems {
                 if let Err(e) = system.check_in_module(module_context) {
-                    errors.push(e);
+                    match e {
+                        InModuleCheckError::Multiple { errors: inner_errors } => {
+                            errors.extend(inner_errors)
+                        },
+                        _ => errors.push(e)
+                    }
                 }
             }
         }
         if let Some(entity_protos) = &self.entity_protos {
             for entity_proto in entity_protos {
                 if let Err(e) = entity_proto.check_in_module(module_context) {
-                    errors.push(e);
+                    match e {
+                        InModuleCheckError::Multiple { errors: inner_errors } => {
+                            errors.extend(inner_errors)
+                        },
+                        _ => errors.push(e)
+                    }
                 }
             }
         }
         if !errors.is_empty() {
+            if errors.len() == 1 {
+                return Err(errors.pop().unwrap());
+            }
             return Err(InModuleCheckError::raise_multiple(errors));
         }
         Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use crate::ecs::loader::ModuleFileLoader;
+    use super::*;
+    #[test]
+    fn test_in_module_check_pass() {
+        let module = ModuleFileLoader::new(r#"D:\Aethaum\test_project\modules\explore"#.into(), "explore".into())
+            .load().unwrap();
+        let mut module_context = ModuleCheckContext::new("explore".into());
+        let res = module.check_in_module(&mut module_context);
+        assert!(res.is_err());
+        if let Err(e) = res {
+            match e {
+                InModuleCheckError::Multiple { errors } => {
+                    assert_eq!(errors.len(), 4);
+                    for error in errors {
+                        if let InModuleCheckError::PropagateToCrossCheck {.. } = error {
+                            continue;
+                        }else{
+                            panic!("{}", error);
+                        }
+                    }
+                },
+                _ => panic!("{}", e)
+            }
+        }
     }
 }
