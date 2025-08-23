@@ -1,7 +1,8 @@
+use std::path::PathBuf;
 use thiserror::Error;
 use crate::ecs::checker::context::{ModuleCheckContext};
 use crate::ecs::module::{EcsModule, EcsThingRef};
-use crate::toml_parser::parsed::{ComponentRef, EntityProto, EntityProtoRef, EventRef, System, SystemEventHandler, SystemQuery, SystemRef};
+use crate::toml_parser::parsed::{ComponentRef, EntityProto, EntityProtoRef, EventRef, LuaScript, System, SystemEventHandler, SystemQuery, SystemRef};
 
 #[derive(Debug,Error)]
 pub enum InModuleCheckError {
@@ -21,6 +22,8 @@ pub enum InModuleCheckError {
     PropagateToCrossCheck {
         thing_ref: EcsThingRef,
     },
+    #[error("Lua script '{0}' not found in system '{1}'.")]
+    LuaScriptNotFound(PathBuf, SystemRef),
     #[error("Multiple errors occurred during checking:\n{}",
         .errors.iter().map(|e| format!("  - {}", e)).collect::<Vec<_>>().join("\n"))]
     Multiple {
@@ -39,6 +42,9 @@ impl InModuleCheckError {
     }
     pub fn raise_propagate_to_cross_check(thing_ref: EcsThingRef) -> Self {
         Self::PropagateToCrossCheck { thing_ref }
+    }
+    pub fn raise_lua_script_not_found(lua_script: PathBuf, system_ref: SystemRef) -> Self {
+        Self::LuaScriptNotFound(lua_script, system_ref)
     }
     pub fn raise_multiple(errors: Vec<Self>) -> Self {
         Self::Multiple { errors }
@@ -254,6 +260,36 @@ impl InModuleCheckable for System {
                 }
             }
         }
+        if let Some(updates) = &self.update {
+            if let Some(condition_path) = &updates.condition {
+                if let LuaScript::File(path) = condition_path {
+                    let path = module_context.project_root.join(path);
+                    if !path.exists() {
+                       errors.push(
+                            InModuleCheckError::raise_lua_script_not_found(
+                                path,
+                                SystemRef::new(Some(module_context.name.clone()),self.normal.name.clone())
+                            )
+                       )
+                    }
+                }
+            }
+        } //TODO: reduce the clones
+        for handler in self.event_handlers.iter() {
+            if let Some(script) = &handler.logic {
+                if let LuaScript::File(path) = &script {
+                    let path = module_context.project_root.join(path);
+                    if !path.exists() {
+                        errors.push(
+                            InModuleCheckError::raise_lua_script_not_found(
+                                path,
+                                SystemRef::new(Some(module_context.name.clone()),self.normal.name.clone())
+                            )
+                        )
+                    }
+                }
+            }
+        }
 
         if !errors.is_empty() {
             if errors.len() == 1 {
@@ -368,7 +404,7 @@ mod tests {
     fn test_in_module_check_pass() {
         let module = ModuleFileLoader::new(r#"D:\Aethaum\test_project\modules\explore"#.into(), "explore".into())
             .load().unwrap();
-        let mut module_context = ModuleCheckContext::new("explore".into());
+        let mut module_context = ModuleCheckContext::new("explore".into(),r#"D:\Aethaum\test_project"#.into());
         let res = module.check_in_module(&mut module_context);
         assert!(res.is_err());
         if let Err(e) = res {

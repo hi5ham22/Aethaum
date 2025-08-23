@@ -254,7 +254,7 @@ impl ProjectLoader {
                 return Err(ModuleFileLoaderError::raise_multiple(errors).into());
             }
         }
-        Ok(AethaumProject::new(*world_toml, EcsModuleTree::new_empty().with_modules(modules)))
+        Ok(AethaumProject::new(self.base_path, *world_toml, EcsModuleTree::new_empty().with_modules(modules)))
     }
 }
 #[cfg(test)]

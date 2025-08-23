@@ -101,13 +101,16 @@ pub struct RawSystemQuery {
 pub struct RawSystemEventHandler {
     pub watch_for: SmartString,
     pub priority: Option<toml::Value>,
-    pub logic: Option<SmartString>
+    pub logic: Option<SmartString>,
+    pub logic_file: Option<SmartString>
 }
 #[derive(Debug,Serialize,Deserialize)]
 pub struct RawSystemUpdate {
     pub interval: toml::Value,
     pub condition: Option<SmartString>,
-    pub logic: Option<SmartString>
+    pub condition_file: Option<SmartString>,
+    pub logic: Option<SmartString>,
+    pub logic_file: Option<SmartString>
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct RawSystemNormal {

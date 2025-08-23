@@ -8,7 +8,27 @@ use anyhow::Error;
 use itertools::Itertools;
 use one_or_many::OneOrMany;
 
-type LuaCode = SmartString; //TODO: 后续细化这一类型实现
+#[derive(Debug,Clone,PartialEq)]
+pub enum LuaScript {
+    Embed(SmartString),
+    File(PathBuf),
+}
+impl LuaScript {
+    pub fn is_embed(&self) -> bool {
+        matches!(self, LuaScript::Embed(_))
+    }
+    pub fn is_file(&self) -> bool {
+        matches!(self, LuaScript::File(_))
+    }
+    pub fn from_embed_or_file(embed: Option<SmartString>, file: Option<PathBuf>) -> Result<Option<Self>, anyhow::Error> {
+        match (embed, file) {
+            (Some(embed), None) => Ok(Some(LuaScript::Embed(embed))),
+            (None, Some(file)) => Ok(Some(LuaScript::File(file))),
+            (Some(_), Some(_)) => anyhow::bail!("Embed and File cannot be specified at the same time"),
+            (None, None) => Ok(None),
+        }
+     }
+}
 pub trait TomlCode: Sized { //标记Trait, 用于约束Parser泛型
     type RawFile: RawTomlCodeFile + for<'de> serde::Deserialize<'de>;
     fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, anyhow::Error>;
@@ -272,13 +292,13 @@ pub struct SystemQuery {
 pub struct SystemEventHandler {
     pub watch_for: EventRef,
     pub priority: u32,
-    pub logic: Option<LuaCode>
+    pub logic: Option<LuaScript>
 }
 #[derive(Debug,PartialEq,Clone)]
 pub struct SystemUpdate {
     pub interval: Duration,
-    pub condition: Option<LuaCode>,
-    pub logic: Option<LuaCode>
+    pub condition: Option<LuaScript>,
+    pub logic: Option<LuaScript>
 }
 #[derive(Debug,PartialEq,Clone)]
 pub struct System {
@@ -444,7 +464,7 @@ impl TryFrom<RawSystemEventHandler> for SystemEventHandler {
                 },
                 None => 0
             },
-            logic: value.logic.into() // For Further Version, LuaCode type might not be SmartString
+            logic: LuaScript::from_embed_or_file(value.logic, value.logic_file.map(|x| PathBuf::from(x.as_str())))? // For Further Version, LuaScript type might not be SmartString
         })
     }
 }
@@ -467,8 +487,8 @@ impl TryFrom<RawSystemUpdate> for SystemUpdate {
                 }
                 _ => return Err(anyhow::anyhow!("Interval must be a number")),
             },
-            condition: value.condition.into(), // For Further Version, LuaCode type might not be SmartString
-            logic: value.logic.into(), // For Further Version, LuaCode type might not be SmartString
+            condition: LuaScript::from_embed_or_file(value.condition, value.condition_file.map(|x| PathBuf::from(x.as_str())))?,
+            logic: LuaScript::from_embed_or_file(value.logic, value.logic_file.map(|x| PathBuf::from(x.as_str())))?,
         })
     }
 }

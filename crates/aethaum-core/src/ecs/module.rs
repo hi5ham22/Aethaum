@@ -188,13 +188,15 @@ impl EcsModuleTree {
     }
 }
 pub struct AethaumProject {
+    pub root: PathBuf,
     pub world: World,
     pub module_tree: EcsModuleTree
 }
 
 impl AethaumProject {
-    pub fn new(world: World, module_tree: EcsModuleTree) -> Self {
+    pub fn new(root: PathBuf,world: World, module_tree: EcsModuleTree) -> Self {
         Self {
+            root,
             world,
             module_tree
         }

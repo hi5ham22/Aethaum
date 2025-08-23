@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use smart_string::SmartString;
 use crate::toml_parser::parsed::{AethaumType, ComponentRef, EntityProtoRef, EventRef, PrimitiveType, SystemRef};
 use anyhow::Result;
@@ -48,15 +49,17 @@ pub struct ModuleCheckContext {
     pub defined_events: HashSet<EventRef>,
     pub defined_entity_protos: HashSet<EntityProtoRef>,
     pub defined_systems: HashSet<SystemRef>,
+    pub project_root: PathBuf,
 }
 impl ModuleCheckContext {
-    pub fn new(name: SmartString) -> Self {
+    pub fn new(name: SmartString, project_root: PathBuf) -> Self {
         Self {
             name,
             defined_components: HashSet::new(),
             defined_events: HashSet::new(),
             defined_entity_protos: HashSet::new(),
             defined_systems: HashSet::new(),
+            project_root,
         }
     }
 }

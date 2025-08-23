@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use crate::ecs::checker::context::{ModuleCheckContext, ModuleCheckTree};
 use crate::ecs::checker::cross_module::{CrossModuleCheckError, CrossModuleCheckable};
@@ -58,11 +59,11 @@ pub struct SingleEcsModuleChecker;
 
 
 impl SingleEcsModuleChecker {
-    pub fn run_checks(module: &EcsModule) -> Result<ModuleCheckContext, CheckerError> {
+    pub fn run_checks(module: &EcsModule, project_root: PathBuf) -> Result<ModuleCheckContext, CheckerError> {
         // 按阶段执行检查
         // 1. 类型检查
         // 2. 模块内检查
-        let mut module_check_context = ModuleCheckContext::new(module.name.clone());
+        let mut module_check_context = ModuleCheckContext::new(module.name.clone(), project_root);
         module.check_type()?;
         let in_module_check_res = module.check_in_module(&mut module_check_context);
         if let Err(err) = in_module_check_res {
@@ -97,7 +98,7 @@ impl AethaumChecker {
         let mut errors = Vec::new();
         let mut module_contexts = Vec::new();
         for module in project.module_tree.get_modules() {
-            match SingleEcsModuleChecker::run_checks(module) {
+            match SingleEcsModuleChecker::run_checks(module,project.root.clone()) {
                 Ok(module_context) => module_contexts.push(module_context),
                 Err(err) => errors.push(err),
             }
