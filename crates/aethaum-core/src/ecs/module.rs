@@ -1,5 +1,11 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use serde::Deserialize;
 use smart_string::SmartString;
-use crate::toml_parser::parsed::{Component, ComponentRef, EntityProto, EntityProtoRef, Event, EventRef, System, SystemRef};
+use thiserror::Error;
+use crate::toml_parser::parsed::{Component, ComponentRef, EntityProto, EntityProtoRef, Event, EventRef, System, SystemRef, World};
+use crate::toml_parser::raw::{RawComponent, RawEntityProto, RawEvent, RawSystem};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -69,11 +75,31 @@ impl std::fmt::Display for EcsThingRef {
         }
     }
 }
-
+impl From<ComponentRef> for EcsThingRef {
+    fn from(component_ref: ComponentRef) -> Self {
+        EcsThingRef::Component(component_ref)
+    }
+}
+impl From<EventRef> for EcsThingRef {
+    fn from(event_ref: EventRef) -> Self {
+        EcsThingRef::Event(event_ref)
+    }
+}
+impl From<EntityProtoRef> for EcsThingRef {
+    fn from(entity_proto_ref: EntityProtoRef) -> Self {
+        EcsThingRef::EntityProto(entity_proto_ref)
+    }
+}
+impl From<SystemRef> for EcsThingRef {
+    fn from(system_ref: SystemRef) -> Self {
+        EcsThingRef::System(system_ref)
+    }
+}
 pub struct  ModulePath<'a> {
     pub module_name: &'a SmartString,
     pub thing_name: &'a EcsThingRef
 }
+
 
 pub struct EcsModule {
     pub name: SmartString,
@@ -107,5 +133,70 @@ impl EcsModule {
     pub fn with_systems(mut self, systems: Vec<System>) -> Self {
         self.systems = Some(systems);
         self
+    }
+    pub fn with_option_components(mut self, components: Option<Vec<Component>>) -> Self {
+        match components {
+            Some(components) => self.with_components(components),
+            None => self
+        }
+    }
+    pub fn with_option_events(mut self, events: Option<Vec<Event>>) -> Self {
+        match events {
+            Some(events) => self.with_events(events),
+            None => self
+        }
+    }
+    pub fn with_option_entity_protos(mut self, entity_protos: Option<Vec<EntityProto>>) -> Self {
+        match entity_protos {
+            Some(entity_protos) => self.with_entity_protos(entity_protos),
+            None => self
+        }
+    }
+    pub fn with_option_systems(mut self, systems: Option<Vec<System>>) -> Self {
+        match systems {
+            Some(systems) => self.with_systems(systems),
+            None => self
+        }
+    }
+}
+pub struct EcsModuleTree {
+    tree: HashMap<SmartString, EcsModule>
+}
+impl EcsModuleTree {
+    pub fn new_empty() -> Self {
+        Self {
+            tree: HashMap::new()
+        }
+    }
+    pub fn with_modules(mut self, modules: Vec<EcsModule>) -> Self {
+        for module in modules {
+            self.insert_module(module);
+        }
+        self
+    }
+    pub fn get_module(&self, module_name: &str) -> Option<&EcsModule> {
+        self.tree.get(module_name)
+    }
+    pub fn get_module_mut(&mut self, module_name: &str) -> Option<&mut EcsModule> {
+        self.tree.get_mut(module_name)
+    }
+    pub fn insert_module(&mut self, module: EcsModule) {
+        self.tree.insert(module.name.clone(), module);
+    }
+    pub fn get_modules(&self) -> Vec<&EcsModule> {
+        self.tree.values().collect()
+    }
+}
+pub struct AethaumProject {
+    pub world: World,
+    pub module_tree: EcsModuleTree
+}
+
+impl AethaumProject {
+    pub fn new(world: World, module_tree: EcsModuleTree) -> Self {
+        Self {
+            world,
+            module_tree
+        }
     }
 }
