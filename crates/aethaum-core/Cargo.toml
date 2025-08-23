@@ -14,3 +14,4 @@ itertools.workspace = true
 one-or-many.workspace = true
 miette.workspace = true
 thiserror.workspace = true
+rayon.workspace = true
