@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use smart_string::SmartString;
 
 pub trait RawTomlCodeFile: Sized {
-    type RawPieces: for<'de> Deserialize<'de>;
+    type RawPieces: for<'de> Deserialize<'de>; //TODO: try using Iterator
     fn into_pieces(self) -> Self::RawPieces;
 }
 

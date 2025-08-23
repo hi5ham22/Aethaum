@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::toml_parser;
 use crate::toml_parser::raw::RawTomlCodeFile;
 
-mod raw;
+pub mod raw;
 pub mod parsed;
 pub mod error;
 
