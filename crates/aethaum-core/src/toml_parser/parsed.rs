@@ -15,7 +15,10 @@ pub trait TomlCode: Sized { //标记Trait, 用于约束Parser泛型
 
 }
 
-pub trait AethaumRef {}
+pub trait AethaumRef {
+    fn to_global_ref(self, module_name: SmartString) -> Self;
+    fn to_local_ref(self) -> Self;
+}
 
 //Type Definition
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -484,10 +487,63 @@ impl TryFrom<RawSystem> for System {
     }
 }
 //Ref Trait Register
-impl AethaumRef for ComponentRef {}
-impl AethaumRef for EventRef {}
-impl AethaumRef for EntityProtoRef {}
-impl AethaumRef for SystemRef {}
+impl AethaumRef for ComponentRef {
+    fn to_global_ref(self, module_name: SmartString) -> Self {
+        Self {
+            name: self.name,
+            module_name: Some(module_name)
+        }
+    }
+
+    fn to_local_ref(self) -> Self {
+        Self {
+            name: self.name,
+            module_name: None
+        }
+    }
+}
+impl AethaumRef for EventRef {
+    fn to_global_ref(self, module_name: SmartString) -> Self {
+        Self {
+            name: self.name,
+            module_name: Some(module_name)
+        }
+    }
+    fn to_local_ref(self) -> Self {
+        Self {
+            name: self.name,
+            module_name: None
+        }
+    }
+}
+impl AethaumRef for EntityProtoRef {
+    fn to_global_ref(self, module_name: SmartString) -> Self {
+        Self {
+            name: self.name,
+            module_name: Some(module_name)
+        }
+    }
+    fn to_local_ref(self) -> Self {
+        Self {
+            name: self.name,
+            module_name: None
+        }
+    }
+}
+impl AethaumRef for SystemRef {
+    fn to_global_ref(self, module_name: SmartString) -> Self {
+        Self {
+            name: self.name,
+            module_name: Some(module_name)
+        }
+    }
+    fn to_local_ref(self) -> Self {
+        Self {
+            name: self.name,
+            module_name: None
+        }
+    }
+}
 #[derive(Debug,PartialEq,Clone)]
 pub struct WorldNormal {
     pub name: SmartString,
