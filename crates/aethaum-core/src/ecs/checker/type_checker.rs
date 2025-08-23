@@ -1,14 +1,23 @@
 use thiserror::Error;
+use crate::ecs::module::EcsModule;
 use crate::toml_parser::parsed::{AethaumType, ComponentField, EventField, PrimitiveType};
 
 #[derive(Debug,Error)]
 pub enum TypeCheckError {
     #[error("Type mismatch: expected {0}, got {1}")]
     TypeMismatch(AethaumType, toml::Value),
+    #[error("Multiple errors occurred during checking:\n{}",
+        .errors.iter().map(|e| format!("  - {}", e)).collect::<Vec<_>>().join("\n"))]
+    Multiple {
+        errors: Vec<TypeCheckError>,
+    }
 }
 impl TypeCheckError {
     pub fn raise_type_mismatch(expected: AethaumType, got: toml::Value) -> Self {
         Self::TypeMismatch(expected, got)
+    }
+    pub fn raise_multiple(errors: Vec<Self>) -> Self {
+        Self::Multiple { errors }
     }
 }
 
@@ -39,5 +48,25 @@ pub trait TypeCheckable {
 impl TypeCheckable for ComponentField {
     fn check_type(&self) -> Result<(), TypeCheckError> {
         TypeChecker::check_type_value_match(&self.type_spec, &self.default_value)
+    }
+}
+impl TypeCheckable for EcsModule {
+    fn check_type(&self) -> Result<(), TypeCheckError> {
+        let mut errors = Vec::new();
+        if let Some(ref components) = self.components {
+            for component in components {
+                if let Some(fields) = &component.fields {
+                    for field in fields {
+                        if let Err(e) = field.check_type() {
+                            errors.push(e);
+                        }
+                    }
+                }
+            }
+        };
+        if !errors.is_empty() {
+            return Err(TypeCheckError::raise_multiple(errors));
+        }
+        Ok(())
     }
 }

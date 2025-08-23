@@ -14,6 +14,12 @@ impl ModuleCheckTree {
             modules: HashMap::new(),
         }
     }
+    pub fn with_module_contexts(mut self, module_contexts: Vec<ModuleCheckContext>) -> Self {
+        for module_context in module_contexts {
+            self.modules.insert(module_context.name.as_str().into(), module_context);
+        }
+        self
+    }
     pub fn get_module_context(&self, name: &str) -> Option<&ModuleCheckContext> {
         self.modules.get(name)
     }
@@ -35,6 +41,7 @@ pub enum ECSThing {
 }
 
 //单个模块的ECS上下文
+#[derive(Debug)]
 pub struct ModuleCheckContext {
     pub name: SmartString,
     pub defined_components: HashSet<ComponentRef>,

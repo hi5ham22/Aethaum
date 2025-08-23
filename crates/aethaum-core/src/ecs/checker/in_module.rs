@@ -1,7 +1,7 @@
 use thiserror::Error;
 use crate::ecs::checker::context::{ModuleCheckContext};
-use crate::ecs::module::{EcsThingRef};
-use crate::toml_parser::parsed::{ComponentRef, EntityProto, EntityProtoRef, EventRef, SystemEventHandler, SystemQuery, SystemRef};
+use crate::ecs::module::{EcsModule, EcsThingRef};
+use crate::toml_parser::parsed::{ComponentRef, EntityProto, EntityProtoRef, EventRef, System, SystemEventHandler, SystemQuery, SystemRef};
 
 #[derive(Debug,Error)]
 pub enum InModuleCheckError {
@@ -193,6 +193,28 @@ impl InModuleCheckable for SystemEventHandler {
         InModuleChecker::check_in_module_event_ref(&self.watch_for, module_context)
     }
 }
+impl InModuleCheckable for System {
+    fn check_in_module(&self, module_context: &mut ModuleCheckContext) -> Result<(), InModuleCheckError> {
+        let mut errors = Vec::new();
+
+        for query in self.queries.iter() {
+            if let Err(e) = query.check_in_module(module_context) {
+                errors.push(e);
+            }
+        }
+
+        for event_handler in self.event_handlers.iter() {
+            if let Err(e) = event_handler.check_in_module(module_context) {
+                errors.push(e);
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(InModuleCheckError::raise_multiple(errors));
+        }
+        Ok(())
+    }
+}
 impl InModuleCheckable for EntityProto {
     fn check_in_module(&self, module_context: &mut ModuleCheckContext) -> Result<(), InModuleCheckError> {
         let mut errors = Vec::new();
@@ -207,6 +229,63 @@ impl InModuleCheckable for EntityProto {
             return Err(InModuleCheckError::raise_multiple(errors));
         }
 
+        Ok(())
+    }
+}
+impl InModuleCheckable for EcsModule {
+    fn check_in_module(&self, module_context: &mut ModuleCheckContext) -> Result<(), InModuleCheckError> {
+        let mut errors = Vec::new();
+        //registers
+        if let Some(components) = &self.components {
+            for component in components {
+                let comp_ref = ComponentRef::from((self.name.as_str(), component.name.as_str()));
+                if let Err(e) = InModuleChecker::try_register(comp_ref.into(), module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        if let Some(events) = &self.events {
+            for event in events {
+                let event_ref = EventRef::from((self.name.as_str(), event.name.as_str()));
+                if let Err(e) = InModuleChecker::try_register(event_ref.into(), module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        if let Some(entity_protos) = &self.entity_protos {
+            for entity_proto in entity_protos {
+                let entity_proto_ref = EntityProtoRef::from((self.name.as_str(), entity_proto.name.as_str()));
+                if let Err(e) = InModuleChecker::try_register(entity_proto_ref.into(), module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        if let Some(systems) = &self.systems {
+            for system in systems {
+                let system_ref = SystemRef::from((self.name.as_str(), system.normal.name.as_str()));
+                if let Err(e) = InModuleChecker::try_register(system_ref.into(), module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        //ref checking
+        if let Some(systems) = &self.systems {
+            for system in systems {
+                if let Err(e) = system.check_in_module(module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        if let Some(entity_protos) = &self.entity_protos {
+            for entity_proto in entity_protos {
+                if let Err(e) = entity_proto.check_in_module(module_context) {
+                    errors.push(e);
+                }
+            }
+        }
+        if !errors.is_empty() {
+            return Err(InModuleCheckError::raise_multiple(errors));
+        }
         Ok(())
     }
 }

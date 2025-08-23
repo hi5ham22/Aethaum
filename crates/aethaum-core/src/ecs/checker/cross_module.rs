@@ -106,25 +106,8 @@ impl CrossModuleChecker {
     }
 }
 pub trait CrossModuleCheckable {
-    fn check_cross_module<'a ,RefIter>(thing_refs: RefIter, module_context: &ModuleCheckTree) -> Result<(), CrossModuleCheckError>
-    where
-        RefIter: Iterator<Item = &'a EcsThingRef>,
-    {
-        let mut errors = Vec::new();
-        for thing_ref in thing_refs {
-            match CrossModuleChecker::check_cross_module_ref(thing_ref, module_context) {
-                Ok(_) => {}
-                Err(e) => errors.push(e),
-            }
-        }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(CrossModuleCheckError::raise_multiple(errors))
-        }
+    fn check_cross_module(thing_ref: &EcsThingRef, module_context: &ModuleCheckTree) -> Result<(), CrossModuleCheckError> {
+       CrossModuleChecker::check_cross_module_ref(thing_ref, module_context)
     }
 }
-impl CrossModuleCheckable for SystemQuery {}
-impl CrossModuleCheckable for SystemEventHandler {}
-
-impl CrossModuleCheckable for EntityProto {}
+impl CrossModuleCheckable for EcsThingRef {}
