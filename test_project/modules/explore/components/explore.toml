@@ -1,0 +1,29 @@
+[normal]
+tags = ["position"]
+description = "探索相关组件"
+
+[[components]]
+name = "Position"
+description = "实体位置"
+
+[[components.fields]]
+name = "x"
+type = "float"
+default = 0.0
+description = "X坐标"
+
+[[components.fields]]
+name = "y"
+type = "float"
+default = 0.0
+description = "Y坐标"
+
+[[components]]
+name = "Damage"
+description = "伤害"
+
+[[components.fields]]
+name = "amount"
+type = "float"
+default = 0.0
+description = "伤害量"

@@ -1,0 +1,14 @@
+[world]
+name = "MyAIWorld"
+version = "0.1.0"
+author = "Your Name"
+
+[modules]
+combat = "modules/combat"
+explore = "modules/explore"
+
+[build]
+output_dir = "generated"
+
+[cargo]
+# 标准 Cargo 配置

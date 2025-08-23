@@ -1,0 +1,7 @@
+[normal]
+tags = ["test"]
+description = "This is a test"
+
+[[components]]
+name = "Test"
+description = "This is a test"

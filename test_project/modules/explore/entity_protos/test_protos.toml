@@ -1,0 +1,16 @@
+#在一个toml文件中可以定义多个实体原型，normal字段不会参与转译，作为注释和元信息提供
+[normal]
+tags = ["characters", "npcs"]
+description = "角色实体原型"
+
+# 玩家原型
+[[entity_protos]]
+name = "Player"
+components = ["combat::Health", "Position"]
+description = "玩家角色"
+
+# 敌人原型
+[[entity_protos]]
+name = "Enemy"
+components = ["combat::Health", "Position"]
+description = "敌人角色"

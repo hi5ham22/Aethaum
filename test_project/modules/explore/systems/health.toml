@@ -1,0 +1,50 @@
+#一个toml文件中，只能定义一个系统
+[normal]
+name = "HealthSystem"
+description = "处理实体健康值更新"
+category = "health"
+priority = 100
+
+# 组件查询定义
+[[queries]]
+name = "living_entities"
+components_include = ["combat::Health", "Position"]
+components_exclude = ["Test"]
+description = "查询所有存活实体"
+
+[[queries]]
+name = "damaged_entities"
+components_include = ["combat::Health", "Damage"]
+description = "查询受伤实体"
+
+[update]
+interval = 0.1  # 更新间隔(秒)
+
+# 更新条件 (Lua)
+condition = '''
+return entity.health.value > 0
+'''
+
+# 更新逻辑 (Lua)
+logic = '''
+entity.health.value = entity.health.value - entity.damage.amount
+entity.damage.amount = 0
+'''
+
+# 事件处理器
+[[event_handlers]]
+watch_for = "EntityDamaged"
+priority = 10
+logic = '''
+entity.health.value = entity.health.value - event.damage
+'''
+
+[[event_handlers]]
+watch_for = "EntityHealed"
+priority = 20
+logic = '''
+entity.health.value = math.min(
+    entity.health.value + event.amount,
+    entity.health.max_value
+)
+'''

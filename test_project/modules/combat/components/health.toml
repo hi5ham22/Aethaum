@@ -1,0 +1,9 @@
+[[components]]
+name = "Health"
+description = "实体健康值"
+
+ [[components.fields]]
+name = "value"
+type = "float"
+default = 100.0
+description = "当前健康值"

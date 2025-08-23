@@ -1,0 +1,34 @@
+#在一个toml文件中可以定义多个事件，normal字段不会参与转译，作为注释和元信息提供
+[normal]
+tags = ["combat", "interaction"]
+description = "战斗和交互事件"
+
+# 伤害事件
+[[events]]
+name = "EntityDamaged"
+description = "实体受到伤害"
+
+[[events.fields]]
+name = "damage"
+type = "float"
+description = "伤害值"
+
+[[events.fields]]
+name = "attacker"
+type = "EntityId" #原生类型
+description = "攻击者ID"
+
+# 治疗事件
+[[events]]
+name = "EntityHealed"
+description = "实体被治疗"
+
+[[events.fields]]
+name = "amount"
+type = "float"
+description = "治疗量"
+
+[[events.fields]]
+name = "healer"
+type = "EntityId"
+description = "治疗者ID"
