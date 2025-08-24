@@ -113,7 +113,7 @@ output_dir = "generated"
 name = "HealthSystem"
 description = "处理实体健康值更新"
 category = "combat"
-priority = 100
+priority = 100 #优先级越高，越先执行
 
 # 组件查询定义
 [[queries]]
@@ -156,6 +156,8 @@ watch_for = "EntityHealed"
 priority = 20
 logic_file = "scripts/entity_heal.lua"
 ```
+
+在系统中，queries得到的数据为实体的id，这些实体在每个事件处理器中都可以使用。在lua脚本中，使用[[queries]]的name字段的同名变量，可以访问实体。
 
 ### 🧩 components/*.toml - 组件定义
 
@@ -238,6 +240,10 @@ name = "healer"
 type = "EntityId"
 description = "治疗者ID"
 ```
+
+有一些标识**不可以**作为事件名称，它们被Aethaum保留，例如：
+
+- AethaumSpawnEntity
 
 ### 🏗️ entity_protos/*.toml - 实体原型
 

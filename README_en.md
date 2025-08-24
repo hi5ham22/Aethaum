@@ -111,7 +111,7 @@ output_dir = "generated"
 name = "HealthSystem"
 description = "Handles entity health updates"
 category = "combat"
-priority = 100
+priority = 100 #The system with higher priority will be executed first
 
 # Component query definitions
 [[queries]]
@@ -155,6 +155,8 @@ priority = 20
 logic_file = "scripts/entity_heal.lua"
 ```
 
+The result data for a query is EntityId, which is available in "update" and all the event_handlers. You can directly accessed them in your lua code.
+
 ### 🧩 components/*.toml - Component Definitions
 
 ```toml
@@ -197,6 +199,10 @@ type = "float"
 default = 0.0
 description = "Y coordinate"
 ```
+
+Some Identifiers are **reserved** and thus can't be used as event name, like:
+
+- AethaumSpawnEntity
 
 ### ⚡ events/*.toml - Event Definitions
 
