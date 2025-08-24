@@ -45,7 +45,7 @@ pub enum ECSThing {
 #[derive(Debug)]
 pub struct ModuleCheckContext {
     pub name: SmartString,
-    pub defined_components: HashSet<ComponentRef>,
+    pub defined_components: HashSet<ComponentRef>, //TODO: change to use one HashSet to prevent multiple identifiers
     pub defined_events: HashSet<EventRef>,
     pub defined_entity_protos: HashSet<EntityProtoRef>,
     pub defined_systems: HashSet<SystemRef>,
