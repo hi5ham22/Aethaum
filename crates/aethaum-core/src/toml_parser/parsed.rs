@@ -7,6 +7,8 @@ use std::time::Duration;
 use anyhow::Error;
 use itertools::Itertools;
 use one_or_many::OneOrMany;
+use proc_macro2::Span;
+use syn::Ident;
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum LuaScript {
@@ -91,8 +93,16 @@ impl AethaumType {
             _ => AethaumType::Custom(type_str.into()),
         }
     }
-    pub fn to_rust_type(&self) -> String {
-        todo!("to_rust_type")
+    pub fn to_rust_type(&self) -> Ident {
+        match self {
+            AethaumType::Primitive(primitive) => match primitive {
+                PrimitiveType::Float => Ident::new("f32", Span::call_site()),
+                PrimitiveType::Int => Ident::new("i32", Span::call_site()),
+                PrimitiveType::Bool => Ident::new("bool", Span::call_site()),
+                PrimitiveType::Str => Ident::new("String", Span::call_site()),
+            },
+            AethaumType::Custom(custom) => Ident::new(custom, Span::call_site()),
+        }
     }
 }
 
