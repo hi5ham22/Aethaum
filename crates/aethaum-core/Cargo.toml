@@ -15,3 +15,7 @@ one-or-many.workspace = true
 miette.workspace = true
 thiserror.workspace = true
 rayon.workspace = true
+quote.workspace = true
+syn = "2.0.106"
+proc-macro2 = "1.0.101"
+prettyplease = "0.2.37"
