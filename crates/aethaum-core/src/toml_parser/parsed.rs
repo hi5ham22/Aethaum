@@ -36,6 +36,16 @@ pub trait TomlCode: Sized { //标记Trait, 用于约束Parser泛型
     fn from_raw_file(raw: <Self::RawFile as RawTomlCodeFile>::RawPieces) -> Result<OneOrMany<Self>, anyhow::Error>;
 
 }
+pub trait Field {
+    fn name_as_rust_ident(&self) -> Ident;
+    fn type_as_rust_ident(&self) -> Ident;
+}
+pub trait Describable {
+    fn description(&self) -> Option<&str> {
+        None
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item = (&str, &str)>>; //(字段名，字段描述)
+}
 
 pub trait AethaumRef {
     fn to_global_ref(self, module_name: SmartString) -> Self;
@@ -114,6 +124,7 @@ pub struct ComponentField {
     pub default_value: Option<toml::Value>,
     pub description: Option<SmartString>
 }
+
 #[derive(Debug,PartialEq, Clone)]
 pub struct Component {
     pub name: SmartString,
@@ -172,6 +183,12 @@ impl ComponentConstraint {
     pub fn chained_iter(&self) -> impl Iterator<Item = &ComponentRef> { //TODO: test it
         self.include.iter().flatten().chain(self.exclude.iter().flatten())
     }
+    pub fn get_include(&self) -> Option<&Vec<ComponentRef>> {
+        self.include.as_ref()
+    }
+    pub fn get_exclude(&self) -> Option<&Vec<ComponentRef>> {
+        self.exclude.as_ref()
+    }
 }
 impl TryFrom<(Option<Vec<SmartString>>, Option<Vec<SmartString>>)> for ComponentConstraint {
     type Error = anyhow::Error;
@@ -184,6 +201,7 @@ impl TryFrom<(Option<Vec<SmartString>>, Option<Vec<SmartString>>)> for Component
         })
     }
 }
+
 //Event
 #[derive(Debug,PartialEq,Clone)]
 pub struct EventField {
@@ -191,6 +209,7 @@ pub struct EventField {
     pub type_spec : AethaumType,
     pub description: Option<SmartString>
 }
+
 #[derive(Debug,PartialEq,Clone)]
 pub struct Event {
     pub name: SmartString,
@@ -635,5 +654,104 @@ impl From<RawWorld> for World {
             build: value.build.map(Into::into),
             cargo: value.cargo.map(Into::into),
         }
+    }
+}
+//Field Trait Implementation
+impl Field for ComponentField {
+    fn name_as_rust_ident(&self) -> Ident {
+        Ident::new(&self.name, Span::call_site())
+    }
+
+    fn type_as_rust_ident(&self) -> Ident {
+        self.type_spec.to_rust_type()
+    }
+}
+impl Field for &ComponentField {
+    fn name_as_rust_ident(&self) -> Ident {
+        Ident::new(&self.name, Span::call_site())
+    }
+
+    fn type_as_rust_ident(&self) -> Ident {
+        self.type_spec.to_rust_type()
+    }
+}
+impl Field for EventField {
+    fn name_as_rust_ident(&self) -> Ident {
+        Ident::new(&self.name, Span::call_site())
+    }
+
+    fn type_as_rust_ident(&self) -> Ident {
+        self.type_spec.to_rust_type()
+    }
+}
+impl Field for &EventField {
+    fn name_as_rust_ident(&self) -> Ident {
+        Ident::new(&self.name, Span::call_site())
+    }
+
+    fn type_as_rust_ident(&self) -> Ident {
+        self.type_spec.to_rust_type()
+    }
+}
+//Describable trait
+impl Describable for ComponentField {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item = (&str, &str)>> {
+        self.description.as_ref().map(|description| std::iter::once((self.name.as_str(), description.as_str())))
+    }
+}
+impl Describable for Component {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        self.fields.as_ref().map(|fields| fields.iter()
+            .filter_map(|field| {
+                field.description.as_ref().map(|desc| (field.name.as_str(), desc.as_str()))
+            }))
+    }
+}
+impl Describable for EventField {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        self.description.as_ref().map(|desc| std::iter::once((self.name.as_str(), desc.as_str())))
+    }
+}
+impl Describable for Event {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        self.fields.as_ref().map(|fields| fields.iter().filter_map(|field| {
+            field.description.as_ref().map(|desc| (field.name.as_str(), desc.as_str()))
+        }))
+    }
+}
+impl Describable for EntityProto {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        None::<std::iter::Empty<_>>
+    }
+}
+impl Describable for SystemQuery {
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        None::<std::iter::Empty<_>>
+    }
+}
+impl Describable for System {
+    fn description(&self) -> Option<&str> {
+        self.normal.description.as_deref()
+    }
+    fn field_description(&self) -> Option<impl Iterator<Item=(&str, &str)>> {
+        None::<std::iter::Empty<_>>
     }
 }
