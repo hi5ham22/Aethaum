@@ -13,3 +13,13 @@ pub fn trait_describe() -> TokenStream {
         }
     }
 }
+//Reserved Events
+pub fn event_aethaum_spawn_entity() -> TokenStream {
+    quote! {
+        #[derive(Event)]
+        pub struct AethaumSpawnEntity {
+            pub prototype_name: String,
+            pub entity_response: Option<oneshot::Sender<Entity>>,
+        }
+    }
+}
